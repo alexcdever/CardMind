@@ -295,65 +295,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  package-web:
-    name: Package (web)
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
-    defaults:
-      run:
-        working-directory: nsh-app
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install system dependencies
-        # 与 nsh-quality / package-linux 一致（若 --target web 需编 Rust crate 则有依赖）。
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # nsh package --target web 把 app crate 编到 wasm32；预装 target 防 "can't find crate for core"。
-          targets: wasm32-unknown-unknown
-
-      - name: Cache nsh distribution
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.nsh
-            ~/.local/bin
-          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Install nsh CLI
-        run: |
-          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Cache Rust + nsh-app build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            nsh-app/target
-          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
-          restore-keys: |
-            Linux-${{ github.job }}-nshapp-target-
-
-      - name: Package web
-        # 产物：nsh-app/.nsh/out/ 静态站点目录（整目录上传，天然兼容 <name>/ 嵌套）。
-        run: nsh package . --target web
-
-      - name: List package output
-        run: ls -laR .nsh/out/
-
-      - name: Upload web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cardmind-web
-          path: nsh-app/.nsh/out/
-          if-no-files-found: error
-          retention-days: 14
+  # web 目标不做：`nsh package --target web` 要把 app crate 编到 wasm32，而
+  # `cardmind-backend` 依赖 iroh（tokio networking）、rusqlite（bundled SQLite）
+  # 与 tokio，整条链在 wasm 上编不过（实测 run 42255318234：`mio` 48 个 E0599/E0308）。
+  # 除非后端另出 wasm 变体，否则本应用没有 web 构建。iOS/Android 同理留给发布工程
+  # （需要签名材料与移动 SDK），见 docs/handover-nsh-editor-2026-11-03.md。

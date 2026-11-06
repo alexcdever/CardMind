@@ -1564,3 +1564,21 @@ rfd v0.15.4（文件对话框，feature xdg-portal，非 gtk3）
 
 - `ruby -ryaml` 解析合法 ✅；grep 四处改动各自命中 ✅（check 行号 103 < tsx 行号 106；GTK4 包在 L136；wasm target 在 L320；macos-latest 在 L183）。
 - `dart run tool/git_gate.dart full --dry-run` ✅；markdown linter ✅；`dart format --set-exit-if-changed tool` 0 changed ✅。
+
+## 32. CI 首次绿（2026-11-07，远端 run `42255318234`）
+
+修完 wayland + 顺序 + GTK4 + wasm target + macos 标签后，**4/5 job 绿**：
+
+| Job | 结果 |
+|---|---|
+| `NSH Quality (check + tests)` | ✅ 绿 |
+| `Package (linux)` | ✅ 绿（GTK4 链补上后通过） |
+| `Package (macos)` | ✅ 绿（`macos-latest`） |
+| `Package (windows)` | ✅ 绿 |
+| `Package (web)` | ❌ 失败 → **判定为不可行，已删 job** |
+
+**web 不可行的原因**：`nsh package --target web` 要把 app crate 编到 `wasm32-unknown-unknown`，而 `cardmind-backend` 依赖 iroh（tokio 网络）、rusqlite（bundled SQLite）与 tokio——整条链在 wasm 上编不过（实测 `mio` 48 个 `E0599`/`E0308`）。这不是配置问题，是架构约束：除非后端另出 wasm 变体，本应用没有 web 构建。已在 workflow 里把该 job 删除并留注释说明因果（保留历史结论，避免以后有人再试一遍）。
+
+**同一轮另外确认**：`rust_quality.yml` 在 `42249740187` **首次绿（13m06s）**——它自 2026-10-13 起因同一 `libwayland-dev` 缺口一直红，本轮顺带修好。
+
+**最终 workflow 形态**：`nsh_app.yml` = 1 个质量 job + 3 个打包 job（linux / macos / windows；PR 只跑质量，main/tag/dispatch 才打包）。
