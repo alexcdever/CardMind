@@ -1157,9 +1157,42 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
 
-### 修复轮（`fa99c0ca` + `7099682f`，2026-11-06）
+### 修复轮（`fa99c0ca` + `530cf568`，2026-11-06）
 
 - **BLOCKER 修复**：删 4 个探针文件（`RichProbeHarness.tsx`、`rich_probe.test.tsx`、`RichProbe3Harness.tsx`、`rich_probe3.test.tsx`）——`rich_probe.test.tsx` 在 `nsh test`（无 filter 默认跑法）下稳定失败（`<RichEditor>` 没给 `style={{flex:1}}`，且 50k 文档挂视图是「首挂载 >180s」路径）；契约结论已固化进本节与 `nsh-automation-anchors.md`。
 - **修复轮 `nsh test`（无 filter 全量）**：**33 tests / 32 passed / 1 failed**（1m40s）——唯一失败是基线既有 Windows-only `coexist_notes_probe`（macOS 无 `APPDATA`，见 §5.7/§P4 已知环境限制；本轮引入失败 = 0）。
 - **顺手修**：`onNavigateNote` 三处 JSDoc 改为「保留接缝、零生产读取、P4-3b 接」；`noteIdFromLinkUrl` 注释标注 P4-3b 复用；`rich.ts` 头注/`canonicalMarkdown` JSDoc 与本节第 1143 行补「结构等价但会改写源码模式里的记号」；`editor_page.test.tsx` perf 注释的「5 万字」改「2 万字」、`TARGET` 4→3 并注释最坏路径对 300s 单测上限的关系。
 - 回归复测（修复轮）：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 248/247/1skip/0fail；`--filter editor` 31/31；`--filter "note: 移动布局"` 1/1；`cargo test` 0 failed；`nsh package . --target macos` 出包；`git_gate full --dry-run` exit 0；`dart format` 0 changed。
+
+### 合并与主树复验（`b5b03371`，2026-11-06）
+
+合并 commit `b5b03371`（`--no-ff`），分支提交 `83638028`/`fa99c0ca`/`530cf568`，基线 `a2e58168`；diff 14 文件 +918/−534（`editor_page/rich.ts` 新增 138 行）。
+
+**审查两轮**：首轮判 1 个 **BLOCKER**——探针文件 `rich_probe.test.tsx` 在 `nsh test`（无 filter 默认跑法）下稳定失败（`<RichEditor>` 少 `style={{flex:1}}` 挂不上）且把 50k 文档留在末次 session 里；修法（删 4 个探针文件）已执行。复审 **APPROVE**——BLOCKER 确认修复（全量 `nsh test` 33 tests / 32 pass / 1 fail，唯一失败是基线既有 Windows-only `coexist_notes_probe`，本轮引入失败 **0**）；5 条非阻塞项全部落实（`onNavigateNote` 三处 JSDoc 纠正、`noteIdFromLinkUrl` 标注、canonical 归一化说明补全、perf 注释 5万→2万、TARGET 4→3 加说明）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248） |
+| `nsh test --filter editor` | **31/31**（1m34s） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（21.6s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| markdown linter | 1082 references 全有效 |
+
+### ⚠ 已知性能风险：WYSIWYG 首挂载随文档规模超线性（P4-3b 要处理）
+
+**主树清净环境实测**（`[perf] wysiwyg 20060 chars`，headless dev build）：
+
+| 指标 | 20k 字符 |
+|---|---|
+| `<RichEditor>` 首挂载（`open`） | **7 922 ms** |
+| 源码 → WYSIWYG（`toRich`）p50 | **7 926 ms** |
+| WYSIWYG → 源码（`toSource`）p50 | 177 ms |
+
+- 规模曲线（dev/headless，多次测量）：10k ≈ 12s*、20k ≈ **8s**、30k ≈ 66–80s*、50k > 180s*。**\*** 与冷编译并发时的偏高值；清净下 20k 稳定 7.9–8.5s。
+- 瓶颈定位：**不在** `createRichEditor`/`parse`/`serialize`（session 层 10–30k 全部亚秒线性），而在 `<RichEditor>` **首挂载/首布局**（原生视图层）。
+- 对照：旧方案（`Editor` 源码 + `TextView` 预览切换）50k 预览切换 p50 ≈ 2.3s（§F.2 实测）。
+- **release 数字未知**（`nsh test` 只跑 dev/headless，release 需真窗口或打包产物手测）；按 dev→release 常见 10–30× 估算，30k 可能 0.6–1.9s。
+- **处置建议（复审结论）**：P4-3b 加降级——`content.length >= 30_000` 默认进源码模式 + 顶栏提示可切排版；等真 release 包实测后回调阈值（50k<3s 可放宽、>5s 收紧到 20k）。降级路径本身要有测试。
