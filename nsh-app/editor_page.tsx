@@ -1,5 +1,8 @@
-// 编辑页（P4-3a）：编辑态换成 NSH 0.4.0 `RichEditor`（WYSIWYG）；原 `Editor`
-// （Markdown 源码）保留为可切换的「源码模式」。
+// 编辑页（P4-3a 换 WYSIWYG；P4-3b 接 WYSIWYG 的 `[[` 候选与链接跳转）：
+// 编辑态是 NSH 0.4.0 `RichEditor`（WYSIWYG）；原 `Editor`（Markdown 源码）
+// 保留为可切换的「源码模式」。`[[` 候选两种模式共用下方的候选行（源码模式由
+// 文本前缀驱动，WYSIWYG 由 suggestion 插件状态驱动），链接跳转经 `bubbleMenu`
+// 的「打开笔记」（RichEditor 没有 onLinkPress）。
 //
 // 数据流（沿用 P2 骨架，序列化口径换成 getMarkdown）：
 //   noteGet → legacyWikilinksToMarkdown(normalizeNewlines(markdown))
@@ -44,6 +47,8 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     tags,
     selectionHits,
     candidates,
+    candidateIndex,
+    activeNoteLink,
     saveState,
     saveError,
     sourceMode,
@@ -52,13 +57,14 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     ensureRichSession,
     retrySave,
     closeEditor,
-    setCandidates,
     toggleSourceMode,
     handleChange,
     handleSelection,
     handleBlur,
     handleFocus,
     acceptCandidate,
+    closeCandidates,
+    openActiveNoteLink,
     saveStateColor,
   } = createEditorController(props);
 
@@ -101,12 +107,40 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     );
   }
 
+  /** 链接气泡菜单：只在光标/选区落在 `cardmind://note/<id>` 链接上时由
+   *  `bubbleMenu` 显示（RichEditor 没有 `onLinkPress`，Tiptap 语义的
+   *  bubbleMenu 是唯一入口）。触摸目标走主按钮的 48dp。 */
+  function renderLinkBubbleMenu(): JSX.Element {
+    return (
+      <View
+        testID="link-bubble-menu"
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          padding: spacing.xs,
+          borderRadius: radii.md,
+          backgroundColor: colors.surfaceRaised,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <CardMindPrimaryButton
+          label={COPY.openNote}
+          icon="edit"
+          onPress={openActiveNoteLink}
+        />
+      </View>
+    );
+  }
+
   /** WYSIWYG 面板（`RichEditor`）。会话由 `ensureRichSession()` 惰性建立并
    *  在一次 WYSIWYG 存续期内复用；切走源码再切回时整体卸载/重挂（`editor`
    *  prop 只在视图创建时取一次），会话随之以最新 Markdown 重建——撤销栈随
    *  模式切换重置（沿用旧预览切换口径）。`style={flex:1}` 是 headless 挂载的
-   *  必要条件（0.4.0 实测）。 */
+   *  必要条件（0.4.0 实测）。`bubbleMenu` 只在链接上给内容，其余时候传
+   *  `undefined`（Tiptap 语义：app 填内容才显示）。 */
   function renderRich(): JSX.Element {
+    const linkId = activeNoteLink();
     return (
       <RichEditor
         testID="rich-editor"
@@ -115,6 +149,7 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
         autoFocus
         accessibilityLabel={COPY.richLabel}
         styles={richEditorStyles(metrics())}
+        bubbleMenu={linkId === null ? undefined : renderLinkBubbleMenu()}
         style={{
           flex: 1,
           backgroundColor: colors.paper,
@@ -270,10 +305,12 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                   链接到：
                 </Text>
                 {() =>
-                  candidates().map((candidate) => (
+                  candidates().map((candidate, index) => (
                     <CardMindTag
                       testID={`link-${candidate.id}`}
+                      textTestID={`link-text-${candidate.id}`}
                       label={candidate.title}
+                      selected={index === candidateIndex()}
                       comfortable
                       onTap={() => void acceptCandidate(candidate)}
                     />
@@ -284,7 +321,7 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                 <CardMindIconButton
                   icon="close"
                   tooltip={COPY.closeCandidates}
-                  onPress={() => setCandidates([])}
+                  onPress={closeCandidates}
                 />
               </View>
             </If>

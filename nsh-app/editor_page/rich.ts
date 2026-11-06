@@ -19,11 +19,19 @@ import {
   markdown,
   starterKit,
   starterSchema,
+  suggestion,
   type RichEditorSession,
   type RichEditorStyles,
   type RichSchema,
 } from "nsh/base";
 import { colors, radii } from "../theme";
+
+/** `[[` 候选的 suggestion 插件 key：controller 读状态/接受时与插件同 key。 */
+export const WIKILINK_SUGGESTION_KEY = "wikilink";
+
+/** 候选触发串。0.4.0 的 trigger 是「光标前文本以 char 结尾」的字符串比较，
+ *  多字符可用（实测见 .pipeline/progress.md）。 */
+export const WIKILINK_SUGGESTION_CHAR = "[[";
 
 /** 全页共用的 starter schema（paragraph/heading/blockquote/codeBlock/
  *  horizontalRule/hardBreak/image/有序无序列表/task 列表 + bold/italic/code/
@@ -44,14 +52,30 @@ export function canonicalMarkdown(md: string): string {
 /** 为 `initialMarkdown` 建一个 WYSIWYG 会话。
  *  `link({protocols:["cardmind"], openOnClick:false, enableClickSelection:true})`：
  *  cardmind:// 被认成合法链接协议（P4-2 存储格式 `[alias](cardmind://note/id)`
- *  在 WYSIWYG 里渲染为链接而非裸文本）；`openOnClick:false` 本轮不做点击跳转
- *  （P4-3b 再接管链接按下）。 */
+ *  在 WYSIWYG 里渲染为链接而非裸文本）；`openOnClick:false` 让插件不自己打开
+ *  链接（跳转由编辑页的「打开笔记」气泡菜单接管，P4-3b）；`enableClickSelection`
+ *  让按下链接把它整段选中，从而触发 `selectionUpdate` 露出气泡菜单。
+ *  `suggestion({key:"wikilink", char:"[["})`：`[[` 是普通文本触发串（多字符），
+ *  候选列表由编辑页轮询 `session.suggestion("wikilink")` 自绘；方向键/Enter/Tab
+ *  被插件吞掉并记进 `lastKey`/`keyCount`（编辑页据此移动高亮/接受），Escape
+ *  由插件消解（state 变 inactive）。`allowSpaces` 让含空格标题继续匹配（与源码
+ *  模式 `linkPrefixFromContext` 同口径），`anyPrefix` 允许任意前缀后触发。 */
 export function createNoteRichSession(initialMarkdown: string): RichEditorSession {
   return createRichEditor({
     schema: richSchema,
     content: initialMarkdown,
     format: "markdown",
     plugins: [
+      // `suggestion` 必须排在最前：keydown 按插件顺序分派，`starterKit()` 的
+      // 键位会先吃掉 Enter（splitBlock）——那样候选还开着，Enter 却插入了新段，
+      // 建议随之失活、永远接受不到。方向键不在 starterKit 键位里，但同理。
+      suggestion({
+        key: WIKILINK_SUGGESTION_KEY,
+        char: WIKILINK_SUGGESTION_CHAR,
+        allowSpaces: true,
+        anyPrefix: true,
+        captureKeys: ["ArrowUp", "ArrowDown", "Enter", "Tab"],
+      }),
       starterKit(),
       markdown(),
       link({

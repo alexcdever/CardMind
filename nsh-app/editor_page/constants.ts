@@ -24,6 +24,8 @@ export const COPY = {
   sourceMode: "源码",
   richMode: "排版",
   closeCandidates: "关闭候选",
+  /** WYSIWYG 链接气泡菜单：打开链接指向的笔记。 */
+  openNote: "打开笔记",
 } as const;
 
 /** 加载指示器（视觉常量，与 components.tsx 的模块级视觉常量同风格）。 */
