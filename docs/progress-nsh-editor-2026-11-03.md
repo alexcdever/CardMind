@@ -1485,7 +1485,7 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 - **触发**：`push`/`pull_request` → `main`，paths 限 `nsh-app/**`、`rust-backend/**`（app crate path 依赖 backend）、workflow 自身；另加 tag `v*` 与 `workflow_dispatch`。
 - **`nsh-quality`（ubuntu-latest）**：系统依赖（`build-essential pkg-config libssl-dev cmake`）→ Node 22 + pnpm 12.16.1 + Rust stable + nsh 0.4.0 → `pnpm install --config.strict-dep-builds=false`（**不用** `--frozen-lockfile`/`cache: pnpm`：pnpm-lock.yaml 未提交）→ `npx tsx --test "*_test.ts"` → `nsh check .` → `nsh test --filter "editor:"` + `nsh test --filter "note:"`（**绝不跑无 filter 的 `nsh test`**：`coexist_notes_probe.rs › reads_fixture_db` 依赖 Windows APPDATA，基线既有必挂；两条 filter 串行、共享 target 缓存不重编）。
 - **`package-{linux,macos,windows,web}`**：各自 runner（`ubuntu-latest`/`macos-14`/`windows-latest`/`ubuntu-latest`）装 Rust + nsh CLI → `nsh package . --target <t>` → artifact（`.nsh/out/*.tar.gz`、macOS 先 `tar -czf` 再打 `.app` 目录保权限、`.nsh/out/*.zip`、web 静态目录）。**`if:` 只在 push 到 main / tag `v*` / dispatch 跑**，PR 不打包。
-- **缓存**：nsh 发行物 `~/.nsh`+`~/.local/bin`（Windows `%LOCALAPPDATA%\nsh`）按 `nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}`；cargo 与 `nsh-app/target`（**不是** `rust-backend/target`，`nsh check`/`nsh test` 默认 target 在 nsh-app 下）按 `${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock','rust-backend/Cargo.lock') }}`。
+- **缓存**：nsh 发行物 `~/.nsh`+`~/.local/bin`（Windows `%LOCALAPPDATA%\nsh`）按 `nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}`；cargo 与 `nsh-app/target`（**不是** `rust-backend/target`，`nsh check`/`nsh test` 默认 target 在 nsh-app 下）按 `<os>/<job>-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock','rust-backend/Cargo.lock') }}`（key 含 `github.job`，见下文审查修正）。
 - **iOS/Android 不跑**：签名材料 + 移动 SDK 属发布工程，workflow 注释已写明（指向 `docs/handover-nsh-editor-2026-11-03.md`）。
 
 ### 本地验证（YAML 无需真机构建）
@@ -1493,3 +1493,15 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 - `ruby -ryaml` 解析合法（本机 python3 无 PyYAML；等价校验）；`actionlint` 未装，按任务约定跳过并以结构自检替代（jobs/steps/runs-on/if/paths 逐字段核对）。
 - 自查：无 `--frozen-lockfile`、无 `cache: pnpm`、无无 filter 的 `nsh test`；install 命令与已核实文本逐字一致（URL、`NSH_VERSION=v0.4.0`、`$GITHUB_PATH` 两行）。
 - `dart run tool/git_gate.dart full --dry-run` ✅；`dart run tool/lint/markdown_references_linter.dart` ✅（本 worktree 需把主仓 `nsh-app/.cargo/config.toml` 复制过来、`node_modules` 建软链，两个均为 gitignore 的本地文件，属 worktree 环境差而非新增坏引用）；`dart format --set-exit-if-changed tool` 0 changed。
+
+### 审查后修正（修复轮，审查见 `.pipeline/reviewer.md`）
+
+审查后修正：artifact 嵌套路径 + if-no-files-found + cache key 分 job + web 系统依赖。逐项：
+
+1. **BLOCKER——artifact 路径少了 `<name>/` 嵌套层**：lead 实测 `nsh package` 在 Windows 产出 `.nsh/out/cardmind/cardmind.exe` + `cardmind/cardmind.zip`、Linux 同构嵌套在 `.nsh/out/cardmind/`、macOS 为顶层 `.nsh/out/cardmind.app`。修复：windows `path` 改 `nsh-app/.nsh/out/**/*.zip`、linux 改 `nsh-app/.nsh/out/**/*.tar.gz`（`**` 递归匹配 `<name>/` 子目录）；macos 经 `tar -czf` 落在 `.nsh/out/cardmind-macos.tar.gz`（顶层，本就正确）不动；web 整目录上传天然兼容嵌套。**全部 4 个 upload-artifact 加 `if-no-files-found: error`**（v4 默认 warn，路径写错会静默产空 artifact）。
+2. **package-web 补系统依赖**：`build-essential pkg-config libssl-dev cmake`（与 nsh-quality/package-linux 一致，防 `--target web` 需编 Rust crate）。
+3. **cargo cache key 分 job**：三个 Ubuntu job（nsh-quality/package-linux/package-web）原共享 `Linux-nshapp-target-<hash>`——同 key 只允许保存一次、先到者赢，其余只 restore 旧缓存；改为 `Linux-${{ github.job }}-nshapp-target-<hash>`（key 与 restore-keys 同步），macos/windows key 本就含各自 runner.os 不动。
+4. **`env.NSH_VERSION` 复用**：install.sh/install.ps1 的 URL 与 `NSH_VERSION=` 传参改用 `${{ env.NSH_VERSION }}`/`$env:NSH_VERSION`，不再硬编码 `v0.4.0`（防版本漂移）。
+5. **`on.push` paths × tag**：YAML 不允许两条 `on.push`，无法给 tag 单独一条不带 paths 的触发；采注释方案——`on.push` 加注释说明 paths 对 branch/tag 一视同仁、docs-only tag 会被跳过、用 `workflow_dispatch` 兜底。
+
+修复轮门禁：ruby `-ryaml` 解析合法 ✅；`git_gate full --dry-run` ✅；markdown linter ✅（50 files / 1122 refs）；`dart format` 0 changed ✅。
