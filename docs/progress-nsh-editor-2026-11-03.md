@@ -1505,3 +1505,35 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 5. **`on.push` paths × tag**：YAML 不允许两条 `on.push`，无法给 tag 单独一条不带 paths 的触发；采注释方案——`on.push` 加注释说明 paths 对 branch/tag 一视同仁、docs-only tag 会被跳过、用 `workflow_dispatch` 兜底。
 
 修复轮门禁：ruby `-ryaml` 解析合法 ✅；`git_gate full --dry-run` ✅；markdown linter ✅（50 files / 1122 refs）；`dart format` 0 changed ✅。
+
+## 30. CI：ubuntu-latest 缺 libwayland-dev——nsh_app + rust_quality 两个 workflow 补系统依赖（2026-11-06，worktree `ci-wayland-fix`，基线 `main@07bdaa09`）
+
+§29 的 `nsh_app.yml` 首次实跑（run `42243831617`）三处同挂：`NSH Quality`✗、`Package linux`✗、`Package web`✗，报错同为 `wayland-sys v0.31.11` build.rs 用 `pkg-config` 找不到系统 `wayland-client`。
+
+### 根因链
+
+```
+rfd v0.15.4（文件对话框，feature xdg-portal，非 gtk3）
+  → ashpd v0.11.1
+    → wayland-client v0.31.15 + wayland-backend v0.3.17
+      → wayland-sys v0.31.11   ← build.rs 用 pkg-config 找系统 libwayland-client
+```
+
+- `rfd` 是 `rust-backend` **生产依赖**（非 dev-dep）：`rust-backend` workspace 与 `nsh-app`（path 依赖 rust-backend）同一依赖链，两个 workflow 都受影响。
+- `ubuntu-26.04` runner 镜像**不预装** `libwayland-dev`/`libxkbcommon-dev`——「以前能过、现在挂」即 runner 镜像换代所致。
+- `rfd` 的 build.rs 选 `xdg-portal`（`gtk3` feature 未开）→ 不需要 GTK 头文件；`libxkbcommon-dev` 防御性带上（Rust 键盘/输入法栈常客）。
+
+### 改动（纯 YAML，无构建）
+
+- `.github/workflows/nsh_app.yml`：三个 Ubuntu job（`nsh-quality`/`package-linux`/`package-web`）的 `Install system dependencies` 包列表末尾追加 `libwayland-dev libxkbcommon-dev`（install 行 L53/L133/L311）。
+- `.github/workflows/rust_quality.yml`：`rust-quality` 与 `rust-coverage` 各在 `Checkout code` 之后、`Setup Rust` 之前新增 `Install system dependencies` 步骤（L28、L106），包列表与 nsh_app.yml 同款 + `libwayland-dev libxkbcommon-dev`。
+
+### 本地验证
+
+- `ruby -ryaml` 两文件解析合法 ✅；grep：`nsh_app.yml` 三处、`rust_quality.yml` 两处步骤各含 `libwayland-dev libxkbcommon-dev` ✅。
+- `dart run tool/git_gate.dart full --dry-run` ✅；markdown linter ✅；`dart format --set-exit-if-changed tool` 0 changed ✅。
+
+### 已知遗留
+
+- `rust_quality.yml` 自 10-13 起即因同一 libwayland 缺口 broken（既有 broken，非本轮引入），本轮随两个 job 的新增步骤一并修复。
+- `Package macos` 在该 run 0s cancelled：runner 分配问题，与依赖无关，未定位。
