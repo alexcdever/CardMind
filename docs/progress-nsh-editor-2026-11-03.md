@@ -1475,3 +1475,21 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | 1 段 × 100k 字符 | 275 ms | 169 ms | ~1.6× |
 
 **结论更新**：release 下 2 000 块 ≈ 3.8 s——慢但仍「能用」；曲线仍超线性（500→303ms、1000→885ms、2000→3 849ms，指数 ≈1.9），n² 缺陷在 release 里依然存在，只是常量小了 ~15–20×。用户原判断（千级块场景罕见、不报 upstream）在 release 数据下成立。**仍建议将来若撞见真实长笔记慢打开再启用 §5 的根治方案或上报。**
+
+## 29. CI：新建 nsh_app workflow（前端质量 + 三平台打包）（2026-11-06，worktree `ci-nsh-package`，基线 `main@70f1f6db`）
+
+Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality.yml`（只做 Rust fmt/clippy/test/coverage）。本轮新增 `.github/workflows/nsh_app.yml`，用固定 **nsh CLI v0.4.0**（`longbridge/nsh` release `install.sh`/`install.ps1`）跑 NSH 前端质量与桌面/web 打包。
+
+### 结构与设计选择
+
+- **触发**：`push`/`pull_request` → `main`，paths 限 `nsh-app/**`、`rust-backend/**`（app crate path 依赖 backend）、workflow 自身；另加 tag `v*` 与 `workflow_dispatch`。
+- **`nsh-quality`（ubuntu-latest）**：系统依赖（`build-essential pkg-config libssl-dev cmake`）→ Node 22 + pnpm 12.16.1 + Rust stable + nsh 0.4.0 → `pnpm install --config.strict-dep-builds=false`（**不用** `--frozen-lockfile`/`cache: pnpm`：pnpm-lock.yaml 未提交）→ `npx tsx --test "*_test.ts"` → `nsh check .` → `nsh test --filter "editor:"` + `nsh test --filter "note:"`（**绝不跑无 filter 的 `nsh test`**：`coexist_notes_probe.rs › reads_fixture_db` 依赖 Windows APPDATA，基线既有必挂；两条 filter 串行、共享 target 缓存不重编）。
+- **`package-{linux,macos,windows,web}`**：各自 runner（`ubuntu-latest`/`macos-14`/`windows-latest`/`ubuntu-latest`）装 Rust + nsh CLI → `nsh package . --target <t>` → artifact（`.nsh/out/*.tar.gz`、macOS 先 `tar -czf` 再打 `.app` 目录保权限、`.nsh/out/*.zip`、web 静态目录）。**`if:` 只在 push 到 main / tag `v*` / dispatch 跑**，PR 不打包。
+- **缓存**：nsh 发行物 `~/.nsh`+`~/.local/bin`（Windows `%LOCALAPPDATA%\nsh`）按 `nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}`；cargo 与 `nsh-app/target`（**不是** `rust-backend/target`，`nsh check`/`nsh test` 默认 target 在 nsh-app 下）按 `${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock','rust-backend/Cargo.lock') }}`。
+- **iOS/Android 不跑**：签名材料 + 移动 SDK 属发布工程，workflow 注释已写明（指向 `docs/handover-nsh-editor-2026-11-03.md`）。
+
+### 本地验证（YAML 无需真机构建）
+
+- `ruby -ryaml` 解析合法（本机 python3 无 PyYAML；等价校验）；`actionlint` 未装，按任务约定跳过并以结构自检替代（jobs/steps/runs-on/if/paths 逐字段核对）。
+- 自查：无 `--frozen-lockfile`、无 `cache: pnpm`、无无 filter 的 `nsh test`；install 命令与已核实文本逐字一致（URL、`NSH_VERSION=v0.4.0`、`$GITHUB_PATH` 两行）。
+- `dart run tool/git_gate.dart full --dry-run` ✅；`dart run tool/lint/markdown_references_linter.dart` ✅（本 worktree 需把主仓 `nsh-app/.cargo/config.toml` 复制过来、`node_modules` 建软链，两个均为 gitignore 的本地文件，属 worktree 环境差而非新增坏引用）；`dart format --set-exit-if-changed tool` 0 changed。
