@@ -1,16 +1,25 @@
 // 编辑页控制器（自 editor_page.tsx 纯结构拆出）：`EditorPage` 体内「数据接缝 →
 // 保存态颜色」的全部声明原样移入 `createEditorController`——signals、let 绑定、
-// metrics/sideBySide、clear*Timer、persist/saveNow/scheduleSave/retrySave、
+// metrics、clear*Timer、persist/saveNow/scheduleSave/retrySave、
 // readLatestText/closeEditor、加载门 effect、卸载 flush effect、Escape keymap
-// effect、setCandidates/flushOnUnmount、预览去抖/开合、handleChange/Selection/
-// Blur/Focus、acceptCandidate、saveStateColor。声明顺序与函数体逐字不变；
-// 仅外层包一个 `function createEditorController(props)` + 末尾 return，缩进 +2。
+// effect、setCandidates/flushOnUnmount、源码↔WYSIWYG 模式开合、handleChange/
+// Selection/Blur/Focus、acceptCandidate、saveStateColor。
 //
-// `editor` 是唯一「读+写」的 let 绑定：入口解构为 const 后无法写回，故控制器
-// 额外暴露 `setEditor`（renderEditor 的 ref 回调由 `editor = ref` 改为
-// `setEditor(ref)`，唯一改写点）；其余标识符名字不变，入口经解构按原名取用。
+// P4-3a：编辑态从 `Editor`（Markdown 源码）换为 `RichEditor`（WYSIWYG），
+// 原 `Editor` 保留为「源码模式」（`sourceMode` 信号；原 `preview` 语义反转且改名）。
+// 关键结构变化：
+//   - `text()` 仍持有「最近一次落盘的 Markdown 口径」；WYSIWYG 下**不**随每次
+//     事务序列化（19k 字 getMarkdown≈22ms/次，逐键太贵），而是 update→dirty→
+//     700ms 防抖→persist 时经 `currentContent()` 取当次快照。
+//   - WYSIWYG 会话生命周期：默认（非源码模式）经 `ensureRichSession()` 惰性创建；
+//     切源码时拆监听弃会话，切回时以最新 Markdown 重建（撤销栈随模式切换重置，
+//     同旧「预览切换重置撤销」口径）。
+//   - `[[` 候选只在源码模式启用（P4-3a 不做 WYSIWYG suggestion——selection 是
+//     ProseMirror 位而非文本 offset，下轮再接）。
+//   - `editor`（源码 `EditorRef`）与 `richSession` 是两个互斥的「活编辑器」；
+//     `readLatestText`/`currentContent` 按 `sourceMode()` 选边。
 import { effect, keymap, signal, windowSize } from "nsh";
-import { type EditorRef, type EditorSelection } from "nsh/base";
+import { type EditorRef, type EditorSelection, type RichEditorSession, type RichSelectionJSON } from "nsh/base";
 import {
   AUTOSAVE_DEBOUNCE_MS,
   LOAD_TIMEOUT_MS,
@@ -34,16 +43,15 @@ import {
   CANDIDATE_BLUR_HIDE_MS,
   CLOSE_FLUSH_ATTEMPTS,
   COPY,
-  PREVIEW_DEBOUNCE_MS,
   SAVE_STATE,
-  SIDE_BY_SIDE_WIDTH,
   type SaveState,
 } from "./constants";
 import { backendEditorRepository, isNewNoteId } from "./repository";
+import { canonicalMarkdown, createNoteRichSession } from "./rich";
 import type { EditorPageProps } from "./types";
 
 /** 一次 `EditorPage` 挂载的全部实例状态与逻辑；返回对象的键逐字等于入口
- *  `renderPreview`/`renderEditor`/`renderContent`/返回 JSX 使用的局部名。 */
+ *  renderSource/renderRich/renderContent/返回 JSX 使用的局部名。 */
 export function createEditorController(props: EditorPageProps) {
   const repo = props.repository ?? backendEditorRepository;
   const initialId = props.noteId;
@@ -59,17 +67,22 @@ export function createEditorController(props: EditorPageProps) {
   const candidates = signal<WikiCandidate[]>([]);
   const saveState = signal<SaveState>(newNote ? SAVE_STATE.dirty : SAVE_STATE.saved);
   const saveError = signal("");
-  // 预览：`preview` 决定当前是否显示 TextView；`previewText` 是去抖后的预览文本
-  // （绝不把每键变化的 text() 直接绑给 TextView，05 §3.3/R6）。
-  const preview = signal(false);
-  const previewText = signal("");
+  /** 编辑模式：`false` = WYSIWYG（`RichEditor`，默认）；`true` = 源码
+   *  （`Editor` 显示 Markdown 原文，可编辑）。P4-3a 由「预览开关」改语义。 */
+  const sourceMode = signal(false);
+  /** WYSIWYG 会话代际：每次 `ensureRichSession()` 新建会话时 +1；下面的
+   *  effect 读它挂监听（监听必须挂在 effect 作用域——session.on() 绑
+   *  「调用方组件上下文」，render thunk 重跑会把监听连带销毁，导致
+   *  事务不再触发自动保存。实测见 P4-3a progress。） */
+  const richEpoch = signal(0);
 
   let editor!: EditorRef;
+  /** WYSIWYG 会话与其 update 监听（互斥于源码模式的 `editor`）。 */
+  let richSession: RichEditorSession | null = null;
   let currentId = newNote ? "" : initialId;
   let lastSaved = "";
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let candidateTimer: ReturnType<typeof setTimeout> | null = null;
-  let previewTimer: ReturnType<typeof setTimeout> | null = null;
   let loadTimer: ReturnType<typeof setTimeout> | null = null;
   let completionToken = 0;
   let idPromise: Promise<string> | null = null;
@@ -85,8 +98,6 @@ export function createEditorController(props: EditorPageProps) {
     windowSize().width >= layout.desktopBreakpoint
       ? editorTypography.desktop
       : editorTypography.mobile;
-  /** ≥1280 桌面：`preview` 打开时 Editor|TextView 并排；否则单栏切换。 */
-  const sideBySide = () => windowSize().width >= SIDE_BY_SIDE_WIDTH;
 
   function clearSaveTimer(): void {
     if (saveTimer !== null) {
@@ -102,13 +113,6 @@ export function createEditorController(props: EditorPageProps) {
     }
   }
 
-  function clearPreviewTimer(): void {
-    if (previewTimer !== null) {
-      clearTimeout(previewTimer);
-      previewTimer = null;
-    }
-  }
-
   function clearLoadTimer(): void {
     if (loadTimer !== null) {
       clearTimeout(loadTimer);
@@ -116,17 +120,33 @@ export function createEditorController(props: EditorPageProps) {
     }
   }
 
+  /** 当前编辑器内容的「当次 Markdown 快照」（同步）。WYSIWYG 下现场
+   *  `getMarkdown()`（不写信号，调用方自取）；源码模式为 `text()`。 */
+  function currentContent(): string {
+    if (!sourceMode() && richSession !== null) return richSession.getMarkdown();
+    return text();
+  }
+
   /** 写一次（整篇替换）。返回 false 时 UI 停在「保存失败」，不谎报已保存。 */
   async function persist(): Promise<boolean> {
-    const snapshot = text();
+    const snapshot = currentContent();
+    // 脏检测基线用 canonical（RichEditor 序列化形式）：多空行/语法重排在
+    // WYSIWYG 往返下会塌缩，raw 比较会幻影 dirty（见 P4-3a progress）。
+    const base = canonicalMarkdown(snapshot);
     // 新笔记空内容不创建（不空建笔记）；已有笔记的空内容允许保存（修 01 R3）。
     // 同步 lastSaved，避免「未落盘但永远 dirty」的状态（第 1 轮关闭卡死的根因）。
     if (currentId === "" && snapshot.trim() === "") {
-      lastSaved = snapshot;
+      lastSaved = base;
+      text.set(base);
       return true;
     }
-    // 没有改动且已有 id：不需要再写。
-    if (currentId !== "" && snapshot === lastSaved) return true;
+    // 没有改动且已有 id：不需要再写；同时复位「已保存」——handleRichUpdate
+    // 每次事务都标 dirty，等值内容必须在这里把状态拉回 saved。
+    if (currentId !== "" && base === lastSaved) {
+      text.set(base);
+      saveState.set(SAVE_STATE.saved);
+      return true;
+    }
     saveState.set(SAVE_STATE.saving);
     saveError.set("");
     try {
@@ -144,8 +164,9 @@ export function createEditorController(props: EditorPageProps) {
       await repo.noteUpdateMetadata(id, tags());
       await repo.syncNotesToStore();
       if (disposed) return true;
-      if (text() === snapshot) {
-        lastSaved = snapshot;
+      if (canonicalMarkdown(currentContent()) === base) {
+        lastSaved = base;
+        text.set(base);
         saveState.set(SAVE_STATE.saved);
       } else {
         // 保存期间又有输入：不覆盖 lastSaved，等下一轮去抖保存。
@@ -184,20 +205,33 @@ export function createEditorController(props: EditorPageProps) {
     void saveNow();
   }
 
-  /** 关闭前以 `editor.value()` 取最新文本（0.3.0 只做 `\r\n`/`\r`→`\n` 归一），
-   *  不只依赖 `onChange` 写下的 `text()` 信号；读失败时退回信号值。 */
+  /** 关闭前取最新文本并归一到 canonical 基线：源码模式走 `editor.value()`
+   *  → canonical；WYSIWYG 走 `getMarkdown()` → canonical（getMarkdown 的
+   *  原文与 canonical 可能差尾随空行，统一 canonical 才能与 lastSaved
+   *  逐字节比较，否则「等值即返回」判定失效、关闭卡死——P4-3a 实测）。 */
   async function readLatestText(): Promise<string> {
-    if (!editor) return text();
-    try {
-      const latest = await editor.value();
+    if (sourceMode()) {
+      if (!editor) return text();
+      try {
+        const latest = canonicalMarkdown(await editor.value());
+        if (latest !== text()) {
+          text.set(latest);
+          if (latest !== lastSaved) saveState.set(SAVE_STATE.dirty);
+        }
+        return latest;
+      } catch {
+        return text();
+      }
+    }
+    if (richSession !== null) {
+      const latest = canonicalMarkdown(richSession.getMarkdown());
       if (latest !== text()) {
         text.set(latest);
         if (latest !== lastSaved) saveState.set(SAVE_STATE.dirty);
       }
       return latest;
-    } catch {
-      return text();
     }
+    return text();
   }
 
   /** 关闭：dirty 时先 flush 最新文本再返回；失败留在页面（错误条可重试）。
@@ -220,7 +254,7 @@ export function createEditorController(props: EditorPageProps) {
     if (text() === lastSaved) goBack();
   }
 
-  // 加载门：noteGet 完成前不挂 Editor；失败/超时显示错误态，重试重新加载。
+  // 加载门：noteGet 完成前不挂编辑器；失败/超时显示错误态，重试重新加载。
   effect(() => {
     const attempt = loadAttempt();
     if (newNote) {
@@ -250,8 +284,11 @@ export function createEditorController(props: EditorPageProps) {
         // 与 `Editor.value()` 同口径：仅 `\r\n`/`\r`→`\n` 归一（05 §1.2）；
         // 另把旧 `[[id|alias]]` 归一为新存储格式 `[alias](cardmind://note/id)`
         // （P4-2 惰性迁移：加载即显示新格式，lastSaved 同步取转换后文本，
-        // 未编辑不 dirty、不回写；首次保存时自然写新格式）。
-        const loaded = legacyWikilinksToMarkdown(normalizeNewlines(value));
+        // 未编辑不 dirty、不回写；首次保存时自然写新格式）。WYSIWYG 首次
+        // 渲染时才真正 parse 成 ProseMirror 文档。
+        const loaded = canonicalMarkdown(
+          legacyWikilinksToMarkdown(normalizeNewlines(value)),
+        );
         loadedText.set(loaded);
         text.set(loaded);
         lastSaved = loaded;
@@ -281,15 +318,17 @@ export function createEditorController(props: EditorPageProps) {
     };
   });
 
-  // 卸载：清 timer；桌面切笔记/离开时脏数据尽力 flush（06 §2.3「unmount 存快照」）。
-  // 关闭按钮路径已先 saveNow；这里是「换 key 重建」等直接卸载的兜底。
+  // 卸载：清 timer + WYSIWYG 会话监听；桌面切笔记/离开时脏数据尽力 flush
+  // （06 §2.3「unmount 存快照」）。关闭按钮路径已先 saveNow；这里是「换 key
+  // 重建」等直接卸载的兜底。
   effect(() => () => {
     disposed = true;
     clearSaveTimer();
     clearCandidateTimer();
-    clearPreviewTimer();
     clearLoadTimer();
+    // flush 先于 detachRich：currentContent() 需要活着的 session 取最新快照。
     flushOnUnmount();
+    detachRich();
   });
 
   // 候选打开时 Escape 先关候选、不退出编辑页。
@@ -313,14 +352,26 @@ export function createEditorController(props: EditorPageProps) {
     candidates.set(next);
   }
 
-  /** 卸载时尽力把未保存内容写回（不读可能已拆的编辑器，用 `text()` 快照）。
-   *  新笔记空内容不建；失败静默（页面已拆，无 UI 可报）。 */
+  /** 卸载时尽力把未保存内容写回：先等在飞的 `persist` 落定（closeEditor 的
+   *  flush 可能还在跑——不直接开写，否则会产生重复 noteCreate 竞态，旧快照
+   *  反而盖住新内容）；再按 canonical 基线判断要不要补一次。WYSIWYG 快照
+   *  直接 `getMarkdown()`（不读可能已拆的编辑器视图）。新笔记空内容不建；
+   *  失败静默（页面已拆，无 UI 可报）。 */
   function flushOnUnmount(): void {
-    const snapshot = text();
+    const rs = richSession;
+    const inSource = sourceMode();
     const id = currentId;
-    if (snapshot === lastSaved) return;
-    if (id === "" && snapshot.trim() === "") return;
     void (async () => {
+      // 等在飞 persist 收尾：它的快照可能落后于最新输入（post-check 在
+      // disposed 时会跳过 lastSaved 更新），用落定后的 latest 再判。
+      await chain.then(
+        () => true,
+        () => false,
+      );
+      const snapshot =
+        !inSource && rs !== null ? rs.getMarkdown() : text();
+      if (canonicalMarkdown(snapshot) === lastSaved) return;
+      if (id === "" && snapshot.trim() === "") return;
       try {
         let useId = id;
         if (useId === "") {
@@ -335,37 +386,99 @@ export function createEditorController(props: EditorPageProps) {
     })();
   }
 
-  /** 预览文本去抖刷新（预览可见时打字停止 PREVIEW_DEBOUNCE_MS 后重解析）。 */
-  function schedulePreviewRefresh(): void {
-    clearPreviewTimer();
-    previewTimer = setTimeout(() => {
-      previewTimer = null;
-      previewText.set(text());
-    }, PREVIEW_DEBOUNCE_MS);
+  /** WYSIWYG 会话的脏标记：事务落地即标 dirty + 排防抖保存（不做当次序列化；
+   *  19k 字 getMarkdown≈22ms，逐键太贵；persist/readLatestText/模式切换时才
+   *  序列化当次快照）。 */
+  function handleRichUpdate(): void {
+    if (disposed || sourceMode()) return;
+    saveError.set("");
+    saveState.set(SAVE_STATE.dirty);
+    scheduleSave();
   }
 
-  /** 打开预览：以 `editor.value()` 取最新文本（不必等去抖）后切到预览。 */
-  async function openPreview(): Promise<void> {
-    const latest = await readLatestText();
-    previewText.set(latest);
-    preview.set(true);
+  /** WYSIWYG 选区变化：标签命中只看「选中文本与标签全等」（`[[` 候选本轮不接，
+   *  不用 textBefore 前缀路径）。 */
+  function handleRichSelection(selection: RichSelectionJSON): void {
+    if (richSession === null) return;
+    const anchor = selection.anchor ?? 0;
+    const head = selection.head ?? anchor;
+    const from = Math.min(anchor, head);
+    const to = Math.max(anchor, head);
+    if (from === to) {
+      selectionHits.set([]);
+      return;
+    }
+    const selected = richSession.textBetween(from, to).trim();
+    selectionHits.set(
+      selected === "" ? [] : tags().filter((tag) => tag === selected),
+    );
   }
 
-  /** 切回编辑：源码未变（预览只读）；Editor 以最新文本重挂载。 */
-  function closePreview(): void {
-    clearPreviewTimer();
-    preview.set(false);
+  /** 惰性建立 WYSIWYG 会话（视图 thunk 在 `!sourceMode()` 时调用；同一会话在
+   *  一次 WYSIWYG 存续期内复用）。内容取「当前 Markdown 快照」：首次 =
+   *  loadedText/text（含 legacy 归一），源码模式切回时 = 源码编辑后的文本。
+   *  会话建立后 bump `richEpoch`，由下面的 effect 挂监听。 */
+  function ensureRichSession(): RichEditorSession {
+    if (richSession === null) {
+      const session = createNoteRichSession(text());
+      richSession = session;
+      props.onRichSession?.(session);
+      richEpoch.update((n) => n + 1);
+    }
+    return richSession;
   }
 
-  function togglePreview(): void {
-    if (preview()) closePreview();
-    else void openPreview();
+  /** WYSIWYG 会话监听挂载点：随 `richEpoch` 重建——`session.on()` 的返回停止
+   *  函数绑在「调用它的响应式作用域」上，render thunk 重跑会把监听连带销毁；
+   *  effect 的作用域在 epoch 变化前稳定，因此监听放这里。 */
+  effect(() => {
+    richEpoch();
+    const session = richSession;
+    if (session === null) return;
+    const stopUpdate = session.on("update", () => handleRichUpdate());
+    const stopSel = session.on("selectionUpdate", () => {
+      if (richSession !== null) handleRichSelection(richSession.selection);
+    });
+    return () => {
+      stopUpdate();
+      stopSel();
+    };
+  });
+
+  /** 拆 WYSIWYG 会话：弃引用（不 dispose——GC 收；dispose 会赶在
+   *  正在卸载的视图解绑之前让 Rust 端报错）。监听由 richEpoch effect 的
+   *  cleanup 在视图重建时释放（render thunk 会先跑 ensureRichSession 建
+   *  新会话再 bump epoch——effect 清理旧监听）。 */
+  function detachRich(): void {
+    richSession = null;
+  }
+
+  /** 切到源码模式：先经 `currentContent()` 取最新 Markdown（归一到 canonical，
+   *  与 lastSaved 同口径——getMarkdown 可能多尾随 \n，raw 放进 text() 会让
+   *  关闭比较多吃一次 persist 循环），再拆 WYSIWYG 会话并翻开 `sourceMode`。 */
+  function enterSourceMode(): void {
+    const latest = canonicalMarkdown(currentContent());
+    detachRich();
+    if (latest !== text()) text.set(latest);
+    setCandidates([]);
+    sourceMode.set(true);
+  }
+
+  /** 切回 WYSIWYG：源码 `Editor.value()` 取最新文本（等价于 onChange 的信号值，
+   *  但关闭路径不依赖信号时序），再拆源码引用让 thunk 重建会话。 */
+  async function exitSourceMode(): Promise<void> {
+    await readLatestText();
+    sourceMode.set(false);
+  }
+
+  function toggleSourceMode(): void {
+    if (sourceMode()) void exitSourceMode();
+    else enterSourceMode();
   }
 
   function handleChange(value: unknown): void {
     const next = textOfChange(value);
     text.set(next);
-    if (preview()) schedulePreviewRefresh();
     if (next === lastSaved) {
       saveError.set("");
       saveState.set(currentId === "" ? SAVE_STATE.dirty : SAVE_STATE.saved);
@@ -428,7 +541,7 @@ export function createEditorController(props: EditorPageProps) {
   }
 
   /** 点选候选：替换已输入的 `[[prefix`（一步撤销，修 01 R5），
-   *  插入 `[title](cardmind://note/id) `（P4-2 新存储格式）。 */
+   *  插入 `[title](cardmind://note/id) `（P4-2 新存储格式）。仅源码模式。 */
   async function acceptCandidate(candidate: WikiCandidate): Promise<void> {
     clearCandidateTimer();
     if (!editor) return;
@@ -464,15 +577,14 @@ export function createEditorController(props: EditorPageProps) {
     candidates,
     saveState,
     saveError,
-    preview,
-    previewText,
+    sourceMode,
     metrics,
-    sideBySide,
     setEditor,
+    ensureRichSession,
     retrySave,
     closeEditor,
     setCandidates,
-    togglePreview,
+    toggleSourceMode,
     handleChange,
     handleSelection,
     handleBlur,
