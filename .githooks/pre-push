@@ -12,9 +12,8 @@ if [ "${SKIP_LOCAL_CHECK:-0}" = "1" ]; then
 fi
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-if [ ! -f "$repo_root/pubspec.yaml" ]; then
-  exit 0
-fi
+# 不按 pubspec.yaml 存在性短路：4.6 起仓库不再有 pubspec.yaml（Flutter 链已删），
+# 旧短路会让本地门禁整体空转。
 if ! command -v dart >/dev/null 2>&1; then
   echo "[pre-push] 未找到 dart 命令，无法执行本地质量门禁；请将 Dart/Flutter 加入 PATH" >&2
   exit 1

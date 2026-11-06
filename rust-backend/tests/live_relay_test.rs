@@ -46,13 +46,13 @@ fn live_pairing_and_sync_over_dogcloud_relay() {
         let dir_a = temp_dir_relay("confirmer", RELAY_URL);
         let dir_b = temp_dir_relay("initiator", RELAY_URL);
 
-        let mut confirmer = SyncService::new_persistent(&dir_a).await.unwrap();
+        let confirmer = SyncService::new_persistent(&dir_a).await.unwrap();
         confirmer.set_device_name("Trusted PC");
         confirmer
             .create_note("n1".to_string(), "# From trusted\\n\\nbody one")
             .unwrap();
 
-        let mut initiator = SyncService::new_persistent(&dir_b).await.unwrap();
+        let initiator = SyncService::new_persistent(&dir_b).await.unwrap();
         initiator.set_device_name("New Phone");
 
         println!(
@@ -197,19 +197,17 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
         let confirmer_sink = Arc::new(CollectingSink::new());
         let initiator_sink = Arc::new(CollectingSink::new());
 
-        let mut confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_a, confirmer_sink.clone())
-                .await
-                .unwrap();
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_a, confirmer_sink.clone())
+            .await
+            .unwrap();
         confirmer.set_device_name("Trusted PC");
         confirmer
             .create_note("n1".to_string(), "# From trusted\n\nbody one")
             .unwrap();
 
-        let mut initiator =
-            SyncService::new_persistent_with_log_sink(&dir_b, initiator_sink.clone())
-                .await
-                .unwrap();
+        let initiator = SyncService::new_persistent_with_log_sink(&dir_b, initiator_sink.clone())
+            .await
+            .unwrap();
         initiator.set_device_name("New Phone");
 
         // 两端 relay 配置必须严格为标准 443 URL（字符串不得带 :9443）
@@ -477,6 +475,6 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
 }
 
 fn sync_notes(svc: &SyncService, store: &NoteStore) {
-    // 复用 api.rs 的投影同步（测试内直接调）
-    cardmind_backend::api::sync_notes_to_store(svc, store).unwrap();
+    // 复用 SyncService 的投影同步（测试内直接调）
+    svc.sync_notes_to_store(store).unwrap();
 }

@@ -2,22 +2,21 @@
 
 ## 1. 目标与范围
 
-- 本文档定义 CardMind 的技术栈基线与依赖治理规则，适用于 Flutter、Rust、FRB、构建与测试链路。
+- 本文档定义 CardMind 的技术栈基线与依赖治理规则，适用于 NSH/TSX（nsh-app）、Rust、构建与测试链路。
 - 本文档是跨功能、长期复用的工程标准；功能行为本身以 `docs/adr/` 与 `docs/product.md` 为准。
 
 ## 2. 技术栈基线
 
 ### 2.1 语言与运行时
 
-- Flutter/Dart：Dart SDK `^3.12.2`，以 `pubspec.yaml` 为准。
-- 本地与发布构建基线：Flutter `3.44.9`（Dart `3.12.2`）。
+- NSH/TSX 前端：nsh `0.1.1`（`nsh-app/nsh.json`；UI 为 TSX + tiptap，`nsh-app/package.json`）。
+- Dart 工具链（仅 `tool/` 门禁/lint，不再是产品 UI）：Dart SDK `^3.12.2` 起可用；产品侧无 `pubspec.yaml`（4.6 已删除）。
 - Rust：Edition `2021`，以 `rust-backend/Cargo.toml` 为准。
 
 ### 2.2 跨语言桥接
 
-- Flutter Rust Bridge 是唯一 Flutter-Rust FFI 通道。
-- Dart 与 Rust 侧 `flutter_rust_bridge` 必须同版本锁步维护，当前为 `2.12.0`。
-- FRB 配置源为 `flutter_rust_bridge.yaml`，修改后必须验证生成产物可编译。
+- 前端与 Rust 的边界由 NSH 运行时承载（nsh-app 的 Rust crate 直接嵌入业务后端，`rust = "."` 指 `nsh-app/Cargo.toml` → `rust-backend`）。
+- 旧 Flutter Rust Bridge 桥（`flutter_rust_bridge` + `lib/src/rust/` 生成代码 + `flutter_rust_bridge.yaml`）已随 4.6 整删；`rust-backend/src/frb_generated.rs`、`rust-backend/src/api.rs` 与 `flutter_rust_bridge` 依赖已随 P1 死代码清理删除。
 
 ### 2.3 数据与同步内核
 
@@ -27,39 +26,35 @@
 
 ### 2.4 构建与验证链路
 
-- 应用构建：`dart run tool/build.dart app`
-- 库构建：`dart run tool/build.dart lib`
-- Flutter 测试：`flutter test`
-- Rust 测试：`cargo test`
-- 静态检查：`flutter analyze`
+- 前端测试：`cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`（node --test，经 tsx 加载 TS）
+- 前端打包：`cd nsh-app && npm run build`（需 `NSH_SOURCE` 指向 nsh 源码 checkout）
+- Rust 测试：`cd rust-backend && cargo test --all-features --jobs 1`
+- Rust 静态检查：`cd rust-backend && cargo clippy --all-targets --all-features --workspace -- -D warnings`
+- 门禁：`dart run tool/git_gate.dart plan --staged` / `full`（pre-commit 快速路由；pre-push/full 跑 docs lint → rust clippy → rust test → build-lib → tsx test）
 
 ### 2.5 平台支持
 
 - 产品目标平台：移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。
-- 仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`；iOS 属目标平台，工程目录尚未建立（见 `AGENTS.md` 当前状态）。
-- 构建链路入口为 `tool/build.dart`，以下子命令按代码实测描述：
-  - `dart run tool/build.dart app [--platform <android|macos|linux|windows>] [--android-format <apk|appbundle|split-apk>]`：先构建 Rust 库（`android` 分支用 `cargo ndk` 输出 armeabi-v7a / arm64-v8a / x86_64 三套 `.so`，其余分支用 `cargo build --release`），再执行 `flutter_rust_bridge_codegen generate`，最后执行 `flutter build <platform>`（Android 分支按 `--android-format` 展开为 `build apk`、`build appbundle` 或 `build apk --split-per-abi`）。
-  - `dart run tool/build.dart lib [--target <target-triple>]`：执行 `cargo build --release`（带 `--target` 时产物在 `rust-backend/target/<triple>/release/` 下），并按当前 host 平台把编译产物同步到运行态动态库路径（Windows `build/windows/x64/runner/Release/cardmind_backend.dll`、macOS `build/native/macos/libcardmind_backend.dylib`、Linux `build/linux/x64/release/bundle/lib/libcardmind_backend.so`；平台规格来自 `tool/src/git_gate/host_build.dart`）。
-  - `dart run tool/build.dart run [--app-copy-name <name.app>] [--app-bundle-id <id>]`：仅 macOS，依次执行 lib → `flutter build macos --debug` → 拷贝动态库进 app bundle → 启动应用。
-- `--platform` 只接受 `android`、`macos`、`linux`、`windows`；省略时解析为当前主机可执行平台（`macos`/`linux`/`windows`），iOS 主机没有默认可执行目标。
-- iOS 与移动端构建运行沿用 Flutter 原生命令链路（如 `flutter build ios`、`flutter build apk`）；`tool/build.dart` 当前未封装 iOS 目标。
-- `tool/build.dart` 的默认平台解析逻辑应保持与主机可执行平台一致。
+- 仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，仓库不含任何平台工程目录；iOS 属目标平台，工程目录亦未建立（见 `AGENTS.md` 当前状态）。平台产物统一由 `nsh package . --target <platform>` 产出。
+- 构建链路入口为 `nsh-app/build-nsh.mjs`（`npm run build`），走 0.3.0 CLI 的 `nsh build . -o out`，不需要 `NSH_SOURCE`；旧 tool/build.dart（`app`/`lib`/`run` 子命令，Flutter 构建链）已随 4.6 删除。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `rust-backend/target/release/`）；NSH 把 backend 作为 crate 编进 `nsh-app`，运行时不依赖动态库复制。
 
 ## 3. 核心三方依赖
 
-### 3.1 Flutter / Dart
+### 3.1 前端（nsh-app，npm）
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| flutter_rust_bridge | 2.12.0 | Flutter 与 Rust 互操作桥接 |
-| cupertino_icons | ^1.0.8 | iOS 风格图标 |
-| flutter_lints（dev） | ^6.0.0 | Dart/Flutter lint 基线 |
+| @tiptap/core / starter-kit / 各 extension | ^3.32.0 | 编辑器内核 |
+| tsx（dev） | ^4.19.2 | TSX 测试加载器（node --test） |
+| typescript（dev） | ^5.6.3 | TSX 类型 |
+| esbuild（dev） | ^0.28.2 | web 编辑器 bundle |
+| jsdom（dev） | ^30.1.3 | 测试 DOM |
 
 ### 3.2 Rust
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| flutter_rust_bridge | =2.12.0（锁定 2.12.0） | Rust 侧 FRB 绑定 |
 | loro | 1（锁定 1.13.6） | CRDT 数据内核 |
 | iroh | 1（锁定 1.0.2） | P2P 网络同步；dev-dependency 启用 `test-utils`，用本地 relay 服务器做离线验证 |
 | tokio | 1（锁定 1.52.3） | 异步运行时（`features = ["full"]`） |
@@ -82,7 +77,6 @@
 ## 4. 版本治理与变更规则
 
 - 依赖升级采用最小必要原则，避免无目的升级。
-- FRB 升级必须双端同步并完成端到端编译验证。
 - 新增或替换核心技术栈前，必须先形成设计记录（长期决策写入 `docs/adr/`）并在任务交付中说明，再更新本文档。
 - 任何会改变构建、测试、发布门禁的技术栈变更，都需同步更新对应标准文档。
 

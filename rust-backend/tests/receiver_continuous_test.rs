@@ -46,7 +46,7 @@ async fn wait_one_window(svc: &SyncService) {
 #[test]
 fn receiver_absent_causes_push_timeout() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -147,7 +147,7 @@ fn paired_device_remains_offline_without_last_seen() {
 #[test]
 fn symmetric_cycles_can_miss_each_other() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -218,7 +218,7 @@ fn receiver_starts_once_and_is_idempotent() {
 #[test]
 fn receiver_continuously_accepts_push() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -267,7 +267,7 @@ fn receiver_continuously_accepts_push() {
 #[test]
 fn receiver_stop_is_bounded() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -308,7 +308,7 @@ fn receiver_stop_is_bounded() {
 #[test]
 fn receiver_does_not_block_edits() {
     rt().block_on(async {
-        let (a, _a_store, mut b, b_store) = pair_up(
+        let (a, _a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -353,7 +353,7 @@ fn receiver_does_not_block_edits() {
 #[test]
 fn receiver_does_not_block_outbound_push() {
     rt().block_on(async {
-        let (a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -401,7 +401,7 @@ fn receiver_does_not_block_outbound_push() {
 #[test]
 fn pairing_and_push_routing_coexist() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -480,7 +480,7 @@ fn pairing_and_push_routing_coexist() {
 #[test]
 fn receiver_failure_is_recoverable() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -561,7 +561,7 @@ fn receiver_failure_is_recoverable() {
 #[test]
 fn received_push_updates_sender_last_seen() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -606,7 +606,7 @@ fn received_push_updates_sender_last_seen() {
 #[test]
 fn successful_outbound_push_updates_peer_last_seen() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -642,7 +642,7 @@ fn successful_outbound_push_updates_peer_last_seen() {
 #[test]
 fn failed_push_does_not_mark_online() {
     rt().block_on(async {
-        let (mut a, a_store, b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -695,7 +695,7 @@ fn failed_push_does_not_mark_online() {
 #[test]
 fn two_live_schedulers_sync_independent_of_phase() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),

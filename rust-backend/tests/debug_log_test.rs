@@ -20,7 +20,6 @@ mod common;
 
 use std::sync::Arc;
 
-use cardmind_backend::api;
 use cardmind_backend::debug_log::{self, CollectingSink, LogEvent, PanickingSink};
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
@@ -77,7 +76,7 @@ fn emitted_events_never_carry_sensitive_payload() {
     rt().block_on(async {
         let dir = temp_dir("redact");
         let sink = sink();
-        let mut svc = SyncService::new_persistent_with_log_sink(&dir, sink.clone())
+        let svc = SyncService::new_persistent_with_log_sink(&dir, sink.clone())
             .await
             .unwrap();
         let device_id = svc.device_id();
@@ -220,7 +219,7 @@ fn startup_failure_emits_error_event() {
         std::fs::write(dir.join("relay.txt"), "not-a-url").unwrap();
         let global_sink = sink();
         debug_log::set_global_sink(Some(global_sink.clone()));
-        let result = api::create_persistent_sync_service(dir.to_string_lossy().into()).await;
+        let result = SyncService::new_persistent(&dir).await;
         debug_log::set_global_sink(None);
         assert!(result.is_err(), "无效 relay URL 应构造失败");
         let failed = global_sink
@@ -279,7 +278,7 @@ fn pairing_accept_emits_every_lifecycle_stage() {
         let dir_b = temp_dir("life-b");
         let sink_a = Arc::new(CollectingSink::new());
         let sink_b = Arc::new(CollectingSink::new());
-        let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
             .await
             .unwrap();
         let requester = SyncService::new_persistent_with_log_sink(&dir_b, sink_b.clone())
@@ -421,10 +420,9 @@ fn connect_failure_emits_transport_and_error_chain() {
             .await
             .unwrap();
         let confirmer_sink = Arc::new(CollectingSink::new());
-        let mut confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_confirmer, confirmer_sink)
-                .await
-                .unwrap();
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_confirmer, confirmer_sink)
+            .await
+            .unwrap();
         let _code = confirmer.begin_pairing_accept().unwrap();
         let target = PairingTarget {
             device_id: confirmer.device_id(),
@@ -567,7 +565,7 @@ fn initial_sync_emits_counts_without_content() {
         let dir_b = temp_dir("sync-b");
         let sink_a = Arc::new(CollectingSink::new());
         let sink_b = Arc::new(CollectingSink::new());
-        let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
             .await
             .unwrap();
         confirmer
@@ -576,7 +574,7 @@ fn initial_sync_emits_counts_without_content() {
         confirmer
             .create_note("n2".into(), "SECRET-BODY-2 private")
             .unwrap();
-        let mut initiator = SyncService::new_persistent_with_log_sink(&dir_b, sink_b.clone())
+        let initiator = SyncService::new_persistent_with_log_sink(&dir_b, sink_b.clone())
             .await
             .unwrap();
         let store_a = NoteStore::new(":memory:").unwrap();
@@ -656,7 +654,7 @@ fn panicking_log_sink_does_not_break_sync_flow() {
     rt().block_on(async {
         let dir = temp_dir("panic");
         // 构造即触发 startup 事件 → sink panic → 必须被吞掉
-        let mut svc = SyncService::new_persistent_with_log_sink(&dir, Arc::new(PanickingSink))
+        let svc = SyncService::new_persistent_with_log_sink(&dir, Arc::new(PanickingSink))
             .await
             .unwrap();
         // 写笔记 → persist → 标记待同步（无日志事件）；import 会触发日志事件

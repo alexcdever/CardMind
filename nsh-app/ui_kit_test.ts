@@ -1,0 +1,227 @@
+// 施工方案 2.1 + 2.6 验收测试（task.md 标准 3/4/5）：读文件断言，不跑构建。
+// P2-5 起断言读「入口 + components/ 全部 .ts/.tsx」并集，断言条数与正则不削弱。
+//
+// 断言面：
+//  ① components.tsx 存在且导出 6 个核心组件（CardMindPrimaryButton /
+//     CardMindIconButton / CardMindSearchField / CardMindTag /
+//     CardMindSyncStatus / CardMindEmptyState）+ 列表项 + 确认对话框；
+//  ② components.tsx（含 components/ 子模块）/ navigation.tsx 全部颜色引用
+//     来自 theme.ts 令牌——不出现裸 `#RRGGBB` 或 `0xAARRGGBB` 字面量；
+//  ③ 触摸目标走 `layout.mobileTouchTarget`（=48），不出现裸 48 或更小的
+//     高度常量充当命中区；
+//  ④ App.tsx 用了新组件 + 有路由定义（createNavStack）+ push/pop 代码路径。
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const read = (name: string) => readFileSync(path.join(here, name), 'utf8');
+
+const COMPONENTS = 'components.tsx';
+const COMPONENTS_DIR = 'components';
+const NAVIGATION = 'navigation.tsx';
+const APP = 'App.tsx';
+
+/** P2-5 起组件库拆为入口 + 子目录（components/，同 note_list/editor_page/
+ *  devices_page/trash_page/settings_page 拆分模式）。结构/令牌断言改读
+ *  **并集**（入口 + 子目录全部 .ts/.tsx 拼接）——断言条数与正则一律
+ *  不减少、不放宽，只是把「单文件源码面」扩大到「拆分后的源码面」。 */
+const unionRead = (entry: string, dirName: string) => {
+  const dir = path.join(here, dirName);
+  const subs = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+        .sort()
+        .map((f) => read(path.join(dirName, f)))
+        .join('\n')
+    : '';
+  return read(entry) + '\n' + subs;
+};
+
+describe('2.1 components.tsx — 6 个核心组件导出', () => {
+  it('components.tsx 存在', () => {
+    assert.ok(
+      existsSync(path.join(here, COMPONENTS)),
+      'nsh-app/components.tsx 不存在',
+    );
+  });
+
+  const src = existsSync(path.join(here, COMPONENTS))
+    ? unionRead(COMPONENTS, COMPONENTS_DIR)
+    : '';
+
+  for (const name of [
+    'CardMindPrimaryButton',
+    'CardMindIconButton',
+    'CardMindSearchField',
+    'CardMindTag',
+    'CardMindSyncStatus',
+    'CardMindEmptyState',
+  ]) {
+    it(`导出 ${name}`, () => {
+      assert.match(
+        src,
+        new RegExp(`export\\s+function\\s+${name}\\b`),
+        `components.tsx 应 \`export function ${name}\``,
+      );
+    });
+  }
+
+  it('另导出列表项与确认对话框组件（施工 2.1 的「列表项/对话框」）', () => {
+    assert.match(
+      src,
+      /export\s+function\s+CardMindListItem\b/,
+      'components.tsx 应导出 CardMindListItem（列表项）',
+    );
+    assert.match(
+      src,
+      /export\s+function\s+CardMindConfirmDialog\b/,
+      'components.tsx 应导出 CardMindConfirmDialog（危险确认对话框）',
+    );
+  });
+});
+
+describe('2.1 令牌纪律 — 无裸色值/魔法像素', () => {
+  for (const file of [COMPONENTS, NAVIGATION]) {
+    const p = path.join(here, file);
+    // P2-5：components.tsx 拆为入口 + components/ 子目录，断言读并集；
+    // 子模块从 "../theme" 导入，正则放宽为 "./theme" 与 "../theme" 两档
+    //（仅路径段放宽，断言条数与匹配对象不变）。
+    const src = existsSync(p)
+      ? file === COMPONENTS
+        ? unionRead(COMPONENTS, COMPONENTS_DIR)
+        : read(file)
+      : '';
+
+    it(`${file} 从 theme.ts 导入令牌`, () => {
+      assert.ok(existsSync(p), `${file} 不存在`);
+      assert.match(
+        src,
+        /import\s*\{[^}]*\bcolors\b[^}]*\}\s*from\s*['"]\.\.?\/theme(\.ts)?['"]/,
+        `${file} 应 \`import { colors, ... } from "./theme"（子模块为 "../theme"）\``,
+      );
+    });
+
+    it(`${file} 不含裸 #RRGGBB / 0x 色值字面量`, () => {
+      // 颜色只能经 theme 令牌进来；出现 hex 字面量即违规。
+      assert.ok(
+        !/#[0-9A-Fa-f]{3,8}\b/.test(src),
+        `${file} 出现裸 hex 色值（应改用 theme.ts 的 colors.*）`,
+      );
+      assert.ok(
+        !/0x[0-9A-Fa-f]{6,8}\b/.test(src),
+        `${file} 出现 0x 色值字面量`,
+      );
+    });
+
+    it(`${file} 不引入 React hooks（nsh 用 signal）`, () => {
+      for (const hook of ['useState', 'useEffect', 'useMemo', 'useCallback', 'useRef']) {
+        assert.ok(!src.includes(hook), `${file} 不应使用 React 的 ${hook}`);
+      }
+    });
+  }
+
+  it('触摸目标走 layout.mobileTouchTarget（≥48dp 令牌，非裸 48）', () => {
+    const src = unionRead(COMPONENTS, COMPONENTS_DIR);
+    assert.match(
+      src,
+      /layout\.mobileTouchTarget/,
+      'components.tsx 应用 layout.mobileTouchTarget 表达触摸目标',
+    );
+    // 只看代码：去掉行注释/块注释后不应再有裸 48。
+    const code = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(
+      !/(?<![\w.])48(?![\w.])/.test(code),
+      'components.tsx 不应出现裸 48（触摸目标经 layout.mobileTouchTarget）',
+    );
+  });
+});
+
+describe('2.6 导航骨架 + App.tsx 接入', () => {
+  const nav = existsSync(path.join(here, NAVIGATION)) ? read(NAVIGATION) : '';
+  const app = read(APP);
+
+  it('navigation.tsx 有路由定义 + createNavStack', () => {
+    assert.ok(existsSync(path.join(here, NAVIGATION)), 'nsh-app/navigation.tsx 不存在');
+    assert.match(nav, /createNavStack/, 'navigation.tsx 应用 createNavStack');
+    assert.match(
+      nav,
+      /type\s+Route\b|export\s+type\s+Route\b/,
+      'navigation.tsx 应定义 Route（路由枚举/联合类型）',
+    );
+    // 五条主路由：列表/回收站/设置/设备/编辑器
+    for (const r of ['notes', 'trash', 'settings', 'devices', 'editor']) {
+      assert.match(nav, new RegExp(`"${r}"|'${r}'`), `Route 应含 "${r}" 路由`);
+    }
+  });
+
+  it('navigation.tsx 至少有一条 push/pop 代码路径', () => {
+    assert.match(nav, /nav(igator)?\.push\(/, 'navigation.tsx 应有 push 调用');
+    assert.match(nav, /nav(igator)?\.pop\(/, 'navigation.tsx 应有 pop 调用');
+  });
+
+  it('App.tsx 导入并使用新组件', () => {
+    assert.match(
+      app,
+      /import\s*\{[^}]*CardMind\w+[^}]*\}\s*from\s*['"]\.\/components(\.tsx)?['"]/,
+      'App.tsx 应从 ./components 导入 CardMind* 组件',
+    );
+    // 2.3–2.5 起页面组件被抽到独立模块（note_list/trash/settings/devices），
+    // 骨架改为挂载这些页面。判定「骨架用上组件库」改为扫描 App.tsx + 它挂载的
+    // 页面模块，仍要求 ≥4 种 CardMind*（阈值不变，不弱化）。
+    // P2-2a 起 note_list 拆为入口 + note_list/ 子模块（P2-2b 同式拆
+    // editor_page/；P2-2c 拆 devices_page/；P2-4 拆 trash_page/ 与
+    // settings_page/）：页面清单补上子文件，保证扫描面
+    // 覆盖拆分后的全部页面源码（阈值 ≥4 不变）。
+    const tree = [
+      'devices_page.tsx',
+      'devices_page/sections.tsx',
+      'devices_page/pair_sheets.tsx',
+      'devices_page/state.ts',
+      'devices_page/constants.ts',
+      'devices_page/types.ts',
+      'note_list.tsx',
+      'trash_page.tsx',
+      'trash_page/types.ts',
+      'trash_page/constants.ts',
+      'trash_page/helpers.ts',
+      'trash_page/state.ts',
+      'trash_page/sections.tsx',
+      'settings_page.tsx',
+      'settings_page/types.ts',
+      'settings_page/constants.ts',
+      'settings_page/state.ts',
+      'settings_page/sections.tsx',
+      'note_list/desktop.tsx',
+      'note_list/mobile.tsx',
+      'note_list/list_body.tsx',
+      'note_list/tag_filter_bar.tsx',
+      'note_list/note_row.tsx',
+      'editor_page/loading.tsx',
+      'editor_page/desktop_pane.tsx',
+    ]
+      .map((n) => readFileSync(path.join(here, n), 'utf8'))
+      .join('\n');
+    const used = [
+      'CardMindPrimaryButton',
+      'CardMindIconButton',
+      'CardMindSearchField',
+      'CardMindTag',
+      'CardMindSyncStatus',
+      'CardMindEmptyState',
+      'CardMindListItem',
+      'CardMindConfirmDialog',
+    ].filter((n) => new RegExp(`<${n}\\b`).test(app + tree));
+    assert.ok(
+      used.length >= 4,
+      `App.tsx（含挂载页面）应至少用 4 个新组件渲染骨架（当前 ${used.length}: ${used.join(', ')}）`,
+    );
+  });
+
+  it('App.tsx 挂导航（NavStack navigator）', () => {
+    assert.match(app, /import\s*\{[^}]*nav\b|nav,[^}]*\}/, 'App.tsx 应引入 navigator');
+    assert.match(app, /<NavStack\b/, 'App.tsx 应渲染 <NavStack> 挂页面栈');
+  });
+});

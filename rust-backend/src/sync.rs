@@ -365,8 +365,35 @@ impl SyncService {
         Self::build(None, log).await
     }
 
-    /// 统一构造：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
+    /// 统一构造入口：失败时向全局兜底 sink 发 startup 失败事件。
+    ///
+    /// 失败发生在服务与实例 sink 存在之前，只能用全局 sink（默认 `PlatformSink`
+    /// 写 stderr；测试可注入收集 sink）。日志失败不改变返回值。
     async fn build(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
+        match Self::build_inner(path, log).await {
+            Ok(service) => Ok(service),
+            Err(e) => {
+                debug_log::emit_global(
+                    LogEvent::new("startup.sync_service", "sync.init")
+                        .with_field("action", "failed")
+                        .with_field(
+                            "mode",
+                            if path.is_some() {
+                                "persistent"
+                            } else {
+                                "memory"
+                            },
+                        )
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
+                );
+                Err(e)
+            }
+        }
+    }
+
+    /// 构造实现：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
+    async fn build_inner(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
         let path = path.map(loro_path);
         let data_dir = path
             .as_ref()
@@ -388,7 +415,7 @@ impl SyncService {
             .bind()
             .await
             .context("bind iroh endpoint")?;
-        let mut service = Self {
+        let service = Self {
             core: Arc::new(Mutex::new(CoreState {
                 notes: HashMap::new(),
                 tombstones: HashSet::new(),
@@ -868,7 +895,7 @@ impl SyncService {
     ///
     /// 实现委托 [`Self::accept_pairing_request_with_timeout`]（有界核心）；此处
     /// 用 24 小时边界保持"无限等待"语义（任务 M 决策点 1：有界核心可安全释放）。
-    pub async fn accept_pairing_request(&mut self) -> Result<PairingRequest> {
+    pub async fn accept_pairing_request(&self) -> Result<PairingRequest> {
         match self
             .accept_pairing_request_with_timeout(Duration::from_secs(24 * 3600))
             .await?
@@ -890,7 +917,7 @@ impl SyncService {
     /// 外层 deadline 到点返回 `Ok(None)`。每个 accept 窗口均被
     /// `tokio::time::timeout` 保护（阻塞网络操作两侧都限时）。
     pub async fn accept_pairing_request_with_timeout(
-        &mut self,
+        &self,
         timeout: Duration,
     ) -> Result<Option<PairingRequest>> {
         let started = std::time::Instant::now();
@@ -949,7 +976,7 @@ impl SyncService {
 
     /// accept 等待核心循环（有界；见 [`Self::accept_pairing_request_with_timeout`]）。
     async fn accept_pairing_request_loop(
-        &mut self,
+        &self,
         timeout: Duration,
     ) -> Result<Option<PairingRequest>> {
         let deadline = tokio::time::Instant::now() + timeout;
@@ -1321,7 +1348,7 @@ impl SyncService {
     #[doc(hidden)]
     #[cfg(any(test, feature = "test-utils"))]
     pub async fn receive_pairing_request_for_test(
-        &mut self,
+        &self,
         _store: &NoteStore,
         timeout: Duration,
     ) -> Result<String> {
@@ -1516,7 +1543,7 @@ impl SyncService {
     }
 
     /// 添加/创建一条笔记
-    pub fn create_note(&mut self, note_id: String, content: &str) -> Result<()> {
+    pub fn create_note(&self, note_id: String, content: &str) -> Result<()> {
         let note = NoteCrdt::new();
         note.set_content(content);
         let mut core = self.core.lock().unwrap();
@@ -1542,7 +1569,7 @@ impl SyncService {
     }
 
     /// 更新笔记内容
-    pub fn update_note(&mut self, note_id: &str, content: &str) -> Result<()> {
+    pub fn update_note(&self, note_id: &str, content: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1565,7 +1592,7 @@ impl SyncService {
     /// 更新笔记元数据（meta tags）
     ///
     /// 更新 NoteCrdt 的 meta.tags list 并 persist；persist 失败时回滚内存态。
-    pub fn update_metadata(&mut self, note_id: &str, tags: &[String]) -> Result<()> {
+    pub fn update_metadata(&self, note_id: &str, tags: &[String]) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1594,7 +1621,7 @@ impl SyncService {
     /// 软删除：给笔记 meta 打 deleted_at 标记（进回收站），随快照传播。
     ///
     /// 笔记仍在 notes HashMap 中，仅 meta 标记；persist 失败时回滚内存态。
-    pub fn soft_delete_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn soft_delete_note(&self, note_id: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1615,7 +1642,7 @@ impl SyncService {
     }
 
     /// 恢复：清除笔记 meta 的 deleted_at 标记，随快照传播。
-    pub fn restore_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn restore_note(&self, note_id: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1638,7 +1665,7 @@ impl SyncService {
     /// 彻底删除：从 notes 移除并记入墓碑（删除信息随快照传播，防复活）。
     ///
     /// 已彻底删除的 id 幂等成功；persist 失败时回滚内存态。
-    pub fn purge_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn purge_note(&self, note_id: &str) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         let removed = core.notes.remove(note_id);
         if removed.is_none() && !core.tombstones.contains(note_id) {
@@ -1659,7 +1686,7 @@ impl SyncService {
 
     /// 过期清理：遍历 meta.deleted_at < cutoff 的软删笔记并 purge（入墓碑），
     /// 返回清理数。cutoff 为 RFC3339 时间字符串。
-    pub fn purge_expired(&mut self, cutoff: &str) -> Result<usize> {
+    pub fn purge_expired(&self, cutoff: &str) -> Result<usize> {
         let cutoff_dt = chrono::DateTime::parse_from_rfc3339(cutoff)
             .with_context(|| format!("invalid cutoff timestamp: {}", cutoff))?;
         let mut core = self.core.lock().unwrap();
@@ -1718,7 +1745,7 @@ impl SyncService {
     }
 
     /// 导入全量快照（v3 语义：墓碑 section + 记录流）
-    pub fn import_all(&mut self, data: &[u8]) -> Result<()> {
+    pub fn import_all(&self, data: &[u8]) -> Result<()> {
         let started = std::time::Instant::now();
         let result = {
             let mut core = self.core.lock().unwrap();
@@ -1776,7 +1803,7 @@ impl SyncService {
     /// - v3：`墓碑 section + 记录流`（导入的墓碑与本地 tombstones union 合并；
     ///   记录流中遇到墓碑中的 id 跳过，不复活）
     /// - v1/v2：纯记录流（无墓碑 section，tombstones 为空，无损升级）
-    fn import_raw(&mut self, version: u32, data: &[u8]) -> Result<()> {
+    fn import_raw(&self, version: u32, data: &[u8]) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         import_core_raw(&mut core, version, data)
     }
@@ -2445,7 +2472,7 @@ impl SyncService {
     /// 2. push 给所有配对设备（对等推拉——pull 语义用 push 协议实现：
     ///    我方 push 即请求对端在各自周期里推回）
     /// 3. 短窗口 accept 对端 push（非阻塞）→ import → 刷新 SQLite 投影
-    pub async fn run_sync_cycle(&mut self, store: &NoteStore) -> Result<SyncCycleResult> {
+    pub async fn run_sync_cycle(&self, store: &NoteStore) -> Result<SyncCycleResult> {
         let started = std::time::Instant::now();
         if !self.sync_allowed() {
             let result = SyncCycleResult {
@@ -2672,6 +2699,18 @@ impl SyncService {
             self.receiver_windows.load(Ordering::Acquire),
             self.receiver_connections.load(Ordering::Acquire),
         )
+    }
+
+    /// 优雅退出：先停被动接收任务，再关 iroh endpoint。
+    ///
+    /// 顺序固定：`stop_receiver()`（3 秒内有界返回）先让后台 accept 循环退出，
+    /// 再 `endpoint.close().await`（iroh 1.x 的 `Endpoint::close` 是 async，等待
+    /// 所有连接优雅关闭）。未调用本方法直接 drop `Endpoint` 时，iroh 会打印
+    /// 「Endpoint dropped without calling Endpoint::close. Aborting ungracefully.」。
+    pub async fn close(&self) -> Result<()> {
+        self.stop_receiver().await?;
+        self.endpoint.close().await;
+        Ok(())
     }
 
     /// 事件等待：阻塞直到接收器走完超过 `after` 个 accept 窗口，返回新窗口数。
@@ -4524,27 +4563,211 @@ fn extract_tag_marker(content: &str) -> String {
         .to_string()
 }
 
-/// 解析正文中的 `[[target-id|alias]]` 链接
-fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
-    let mut links = Vec::new();
-    let mut rest = content;
-    while let Some(start) = rest.find("[[") {
-        let after = &rest[start + 2..];
-        let Some(end_rel) = after.find("]]") else {
-            break;
-        };
-        let inner = &after[..end_rel];
-        let (target, alias) = match inner.split_once('|') {
-            Some((t, a)) => (t.trim(), a.trim()),
-            None => (inner.trim(), ""),
-        };
-        if !target.is_empty() {
-            let alias = if alias.is_empty() { target } else { alias };
-            links.push((target.to_string(), alias.to_string()));
+/// 笔记链接的目标 URL 前缀：标准 Markdown 行内链接 `[alias](cardmind://note/<id>)`
+/// （P4-2 新存储格式；私有 scheme `cardmind:`，任何渲染器都能显示成链接）。
+const NOTE_LINK_PREFIX: &str = "cardmind://note/";
+
+/// 预扫描出的定界符位置表：解析循环只向后推进游标，不在每个 `[` 处重扫后缀。
+/// 这是病态输入（如 5 万个连续 `[`）保持 O(n) 的关键。
+struct LinkDelimiters {
+    /// 所有 `]]` 的起始位置（允许重叠，如 `]]]` 记两个）。
+    double_closes: Vec<usize>,
+    /// 所有未被反斜杠转义的 `]` 位置。
+    close_brackets: Vec<usize>,
+    /// 所有未被反斜杠转义的 `)` 位置。
+    close_parens: Vec<usize>,
+}
+
+impl LinkDelimiters {
+    fn scan(content: &str) -> Self {
+        let bytes = content.as_bytes();
+        let mut double_closes = Vec::new();
+        let mut close_brackets = Vec::new();
+        let mut close_parens = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            // `]]` 定界不感知转义（旧格式语法），被 `\` 跳过的字节也要看。
+            if i + 1 < bytes.len() && bytes[i] == b']' && bytes[i + 1] == b']' {
+                double_closes.push(i);
+            }
+            if bytes[i] == b'\\' {
+                let escaped = i + 1;
+                if escaped + 1 < bytes.len() && bytes[escaped] == b']' && bytes[escaped + 1] == b']'
+                {
+                    double_closes.push(escaped);
+                }
+                i += 2;
+            } else {
+                if bytes[i] == b']' {
+                    close_brackets.push(i);
+                } else if bytes[i] == b')' {
+                    close_parens.push(i);
+                }
+                i += 1;
+            }
         }
-        rest = &after[end_rel + 2..];
+        Self {
+            double_closes,
+            close_brackets,
+            close_parens,
+        }
+    }
+}
+
+/// `positions[cursor..]` 中第一个 `>= at` 的位置；游标只前进，调用方保证 `at` 单调不减。
+fn position_at_or_after(positions: &[usize], cursor: &mut usize, at: usize) -> Option<usize> {
+    while *cursor < positions.len() && positions[*cursor] < at {
+        *cursor += 1;
+    }
+    positions.get(*cursor).copied()
+}
+
+/// 解析正文中的笔记链接 → `(target_id, alias)`（双格式，按出现位置顺序）。
+///
+/// 旧格式（历史/兼容）：`[[target-id|alias]]`、`[[target-id]]`。
+/// 新格式（P4-2 起写入）：`[alias](cardmind://note/target-id)`、`[](cardmind://note/target-id)`。
+/// alias 缺省/为空时取 target_id。
+///
+/// 已知边界（粗粒度扫描，与旧解析器同风格）：
+/// - 链接出现在行内代码/围栏代码块内也会被解析（不做 code 感知）；
+/// - alias 中 `\X` 转义只认 ASCII punctuation，其余 `\<c>` 按字面保留；
+/// - target 做 percent-decode 后，`\)` 等转义不再还原（写出端用 encodeURIComponent）；
+/// - `[x] (…)`（`]` 与 `(` 不相邻）、`![img](…)`、非 `cardmind://note/` scheme 均不产链接；
+/// - `[[` 未闭合时不产旧格式链接，但跳过这两个 `[` 继续扫（其中可能含新格式）；
+/// - 未闭合 `[[` 后紧跟一个 Markdown 链接时，前者的残留文本会被并入后者 alias（target 正确、链接不漏）。
+fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
+    let delimiters = LinkDelimiters::scan(content);
+    let mut double_close_cursor = 0;
+    let mut close_bracket_cursor = 0;
+    let mut close_paren_cursor = 0;
+    let mut links = Vec::new();
+    let mut pos = 0;
+    while let Some(open_rel) = content[pos..].find('[') {
+        let open = pos + open_rel;
+        if content.as_bytes().get(open + 1) == Some(&b'[') {
+            // 旧格式 [[target|alias]]
+            let after_start = open + 2;
+            if let Some(end) = position_at_or_after(
+                &delimiters.double_closes,
+                &mut double_close_cursor,
+                after_start,
+            ) {
+                let inner = &content[after_start..end];
+                let (target, alias) = match inner.split_once('|') {
+                    Some((t, a)) => (t.trim(), a.trim()),
+                    None => (inner.trim(), ""),
+                };
+                if !target.is_empty() {
+                    let alias = if alias.is_empty() { target } else { alias };
+                    links.push((target.to_string(), alias.to_string()));
+                }
+                pos = end + 2;
+            } else {
+                // 未闭合的 [[：跳过一个 `[`，让第二个 `[` 走新格式/继续扫描。
+                pos = open + 1;
+            }
+        } else {
+            match parse_markdown_note_link(
+                content,
+                open,
+                &delimiters,
+                &mut close_bracket_cursor,
+                &mut close_paren_cursor,
+            ) {
+                Some((end, target, alias)) => {
+                    let alias = if alias.is_empty() {
+                        target.clone()
+                    } else {
+                        alias
+                    };
+                    links.push((target, alias));
+                    pos = end;
+                }
+                None => pos = open + 1,
+            }
+        }
     }
     links
+}
+
+/// `content[open]` 是 `[` 且其后不是 `[`：尝试解析 `[alias](cardmind://note/target)`。
+/// 返回 `(整个链接的 end offset, target, alias)`；非笔记链接/残片返回 None。
+fn parse_markdown_note_link(
+    content: &str,
+    open: usize,
+    delimiters: &LinkDelimiters,
+    close_bracket_cursor: &mut usize,
+    close_paren_cursor: &mut usize,
+) -> Option<(usize, String, String)> {
+    let bytes = content.as_bytes();
+    // 图片语法 ![…](…) 不是链接。
+    if open > 0 && bytes[open - 1] == b'!' {
+        return None;
+    }
+    // 找未转义的 `]`（`\]` 属于 alias 内容）。
+    let close = position_at_or_after(&delimiters.close_brackets, close_bracket_cursor, open + 1)?;
+    let alias_raw = &content[open + 1..close];
+    // `]` 之后必须紧跟 `(`。
+    let url_start = close + 1;
+    if bytes.get(url_start) != Some(&b'(') {
+        return None;
+    }
+    // 找未转义的 `)`。
+    let url_end =
+        position_at_or_after(&delimiters.close_parens, close_paren_cursor, url_start + 1)?;
+    let url = content[url_start + 1..url_end].trim();
+    let target_encoded = url.strip_prefix(NOTE_LINK_PREFIX)?;
+    if target_encoded.is_empty() {
+        return None;
+    }
+    let target = percent_decode(target_encoded);
+    if target.is_empty() {
+        return None;
+    }
+    Some((url_end + 1, target, unescape_link_text(alias_raw.trim())))
+}
+
+/// 链接文本里的 `\X` 转义还原：只认 ASCII punctuation（CommonMark 口径），
+/// 其余 `\<c>` 保留 `\` 原样（写出端只转义 `\`、`[`、`]`，这里是宽松读）。
+fn unescape_link_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some(next) if next.is_ascii_punctuation() => out.push(next),
+                Some(next) => {
+                    out.push('\\');
+                    out.push(next);
+                }
+                None => out.push('\\'),
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// `%XX` percent-decoding（UTF-8 容错）：非法序列按字面保留。
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            let hi = (bytes[i + 1] as char).to_digit(16);
+            let lo = (bytes[i + 2] as char).to_digit(16);
+            if let (Some(h), Some(l)) = (hi, lo) {
+                out.push((h * 16 + l) as u8);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// 读取 meta Map 的字符串字段
@@ -4883,8 +5106,8 @@ mod tests {
     /// 当前 revision 已超过 after → 立即返回（不挂起等待）。
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn wait_content_revision_returns_immediately_when_already_past() {
-        let mut svc = SyncService::new().await.unwrap();
-        let mut src = SyncService::new().await.unwrap();
+        let svc = SyncService::new().await.unwrap();
+        let src = SyncService::new().await.unwrap();
         src.create_note("n1".to_string(), "# A\n\nbody").unwrap();
         let data = src.export_all().unwrap();
         svc.import_all(&data).unwrap();
@@ -4904,7 +5127,7 @@ mod tests {
     /// 先注册等待再触发 import → 被 notify 唤醒并返回新 revision（先读后等不丢事件）。
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn wait_content_revision_wakes_on_new_import() {
-        let mut svc = SyncService::new().await.unwrap();
+        let svc = SyncService::new().await.unwrap();
         let before = svc.receiver_content_revision();
 
         let svc_ptr = &svc as *const SyncService as usize;
@@ -4916,7 +5139,7 @@ mod tests {
         // 让 waiter 先进入 notified().await（先读后等路径）
         tokio::task::yield_now().await;
 
-        let mut src = SyncService::new().await.unwrap();
+        let src = SyncService::new().await.unwrap();
         src.create_note("n2".to_string(), "# B\n\nbody").unwrap();
         let data = src.export_all().unwrap();
         svc.import_all(&data).unwrap();
@@ -5238,5 +5461,79 @@ mod tests {
         assert!(parse_links_from_content("[[|]]").is_empty());
         // [[]] 也视为空 target
         assert!(parse_links_from_content("[[]]").is_empty());
+    }
+
+    #[test]
+    fn parse_links_reads_markdown_format() {
+        // [alias](cardmind://note/target) → (target, alias)
+        assert_eq!(
+            parse_links_from_content("看 [别名B](cardmind://note/abc123) 这里"),
+            vec![("abc123".to_string(), "别名B".to_string())]
+        );
+        // 空 alias → alias 取 target
+        assert_eq!(
+            parse_links_from_content("[](cardmind://note/abc123)"),
+            vec![("abc123".to_string(), "abc123".to_string())]
+        );
+        // alias = target 文本（[[id]] 归一后的形态）
+        assert_eq!(
+            parse_links_from_content("[note-9](cardmind://note/note-9)"),
+            vec![("note-9".to_string(), "note-9".to_string())]
+        );
+        // target/alias 两侧空白 trim
+        assert_eq!(
+            parse_links_from_content("[  别名  ](cardmind://note/n-1)"),
+            vec![("n-1".to_string(), "别名".to_string())]
+        );
+    }
+
+    #[test]
+    fn parse_links_mixed_formats_in_appearance_order() {
+        let content = "[[a|A]] then [b](cardmind://note/b-id) and [[c]] \
+            plus [d](cardmind://note/d-id)";
+        assert_eq!(
+            parse_links_from_content(content),
+            vec![
+                ("a".to_string(), "A".to_string()),
+                ("b-id".to_string(), "b".to_string()),
+                ("c".to_string(), "c".to_string()),
+                ("d-id".to_string(), "d".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_links_markdown_boundaries() {
+        // 非 cardmind://note/ 的 URL 不是笔记链接
+        assert!(parse_links_from_content("[x](https://example.com)").is_empty());
+        assert!(parse_links_from_content("[x](cardmind://other/y)").is_empty());
+        // 空 target（前缀后无内容）不产生链接
+        assert!(parse_links_from_content("[x](cardmind://note/)").is_empty());
+        // 图片语法 ![…](…) 不是链接
+        assert!(parse_links_from_content("![img](cardmind://note/x)").is_empty());
+        // ] 与 ( 之间有字符 → 不是行内链接
+        assert!(parse_links_from_content("[x] (cardmind://note/y)").is_empty());
+        // 未闭合（缺 ) 或缺 ]( ）不产生链接
+        assert!(parse_links_from_content("[x](cardmind://note/y").is_empty());
+        assert!(parse_links_from_content("[x(cardmind://note/y)").is_empty());
+        // 这些残片不影响其后正常链接被解析
+        assert_eq!(
+            parse_links_from_content("[x](bad) [ok](cardmind://note/ok-1)"),
+            vec![("ok-1".to_string(), "ok".to_string())]
+        );
+    }
+
+    #[test]
+    fn parse_links_markdown_escapes_and_percent_encoding() {
+        // alias 中 \] 转义 → 解析出含 ] 的别名（wikilinkText 的写出形态）
+        assert_eq!(
+            parse_links_from_content("[a\\]b](cardmind://note/x-1)"),
+            vec![("x-1".to_string(), "a]b".to_string())]
+        );
+        // target percent-encoding（encodeURIComponent 的写出形态）
+        assert_eq!(
+            parse_links_from_content("[x](cardmind://note/a%20b%29)"),
+            vec![("a b)".to_string(), "x".to_string())]
+        );
     }
 }

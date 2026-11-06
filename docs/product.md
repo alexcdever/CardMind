@@ -44,7 +44,7 @@
 
 | 优先级 | 能力 | 说明 |
 |--------|------|------|
-| P0 | 双向链接 | 正文写 `[[note-id|别名]]` 创建链接，反向链接面板查看"谁链到了我" |
+| P0 | 双向链接 | 输入 `[[` 选候选创建链接，正文存为标准 Markdown `[别名](cardmind://note/note-id)`（旧 `[[note-id|别名]]` 格式仍兼容读取，见 2026-11 注），反向链接面板查看"谁链到了我" |
 | P1 | 全文搜索 | 搜索正文、标题、标签文本，展示上下文 |
 | P2 | 标签管理 | 独立标签浏览页，标签云，按标签筛选 |
 | P3 | 知识图谱可视化 | 力导向图展示笔记之间的链接关系 |
@@ -61,7 +61,11 @@
 | 本地存储 | Rust 端 Loro CRDT + SQLite 读投影 |
 | 多设备同步 | iroh P2P（默认 `RelayMode::Disabled`，仅局域网直连；配置自定义 relay URL 后走 `RelayMode::Custom`）+ mDNS 设备发现，自动后台同步 |
 | 跨平台框架 | Flutter + Rust (flutter_rust_bridge) |
-| 链接系统 | 正文解析 `[[...]]` → SQLite links 表，反链查询 |
+| 链接系统 | 正文解析笔记链接（新格式 `cardmind://note/<id>` 链接 + 兼容旧 `[[...]]`）→ SQLite links 表，反链查询 |
 | 全文搜索 | SQLite FTS5 |
 
 详见 `CONTEXT.md`（领域术语）、`docs/sync-network.md`（同步网络设计）、`docs/adr/`（架构决策记录）。
+
+> 注（2026-11）：实现已迁移到 NSH 0.3.0（TSX 前端 + 原生 `Editor`），Flutter / flutter_rust_bridge / appflowy_editor 已不再使用；上表为二期 MVP 时点的方案记录。
+>
+> 注（2026-11，P4-2）：笔记链接的存储格式已从私有 `[[id|alias]]` 迁到标准 Markdown `[alias](cardmind://note/<id>)`：任何 Markdown 渲染器都能显示成链接。`[[` 仍是输入触发符（弹候选），插入新格式；旧格式笔记加载时归一为新格式、保存时写回新格式（惰性迁移，不批量改写）；Rust 链接索引两种格式都解析（`sync.rs::parse_links_from_content`）。

@@ -159,7 +159,7 @@ fn paired_device_rows_are_added_listed_and_removed() {
 fn push_then_receive_roundtrip_delivers_notes() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut a = SyncService::new().await.unwrap();
+        let a = SyncService::new().await.unwrap();
         let mut b = SyncService::new().await.unwrap();
 
         a.create_note("note-1".into(), "# 同步笔记\n\n正文内容。")
@@ -205,7 +205,7 @@ fn push_then_receive_roundtrip_delivers_notes() {
                 "配对后 B 的 store 应含 A（配对结果已落库）"
             );
             let data = b.accept_push().await.unwrap();
-            let mut b = b;
+            let b = b;
             b.import_all(&data).unwrap();
             b
         });
@@ -232,7 +232,7 @@ fn push_then_receive_roundtrip_delivers_notes() {
 fn multi_device_push_reports_per_peer_results() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut a = SyncService::new().await.unwrap();
+        let a = SyncService::new().await.unwrap();
         let mut b = SyncService::new().await.unwrap();
         let mut c = SyncService::new().await.unwrap();
         a.create_note("n1".into(), "hello from a").unwrap();
@@ -271,7 +271,7 @@ fn multi_device_push_reports_per_peer_results() {
                 "确认方 B 应收到 A 的配对请求"
             );
             let data = b.accept_push().await.unwrap();
-            let mut b = b;
+            let b = b;
             b.import_all(&data).unwrap();
             b
         });
@@ -284,7 +284,7 @@ fn multi_device_push_reports_per_peer_results() {
                 "确认方 C 应收到 A 的配对请求"
             );
             let data = c.accept_push().await.unwrap();
-            let mut c = c;
+            let c = c;
             c.import_all(&data).unwrap();
             c
         });
@@ -538,7 +538,7 @@ fn health_check_without_ips_gives_up_within_bound() {
 fn inbound_push_refreshes_peer_last_ips() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut a = SyncService::new().await.unwrap();
+        let a = SyncService::new().await.unwrap();
         let mut b = SyncService::new().await.unwrap();
         a.create_note("n-refresh".into(), "ip refresh").unwrap();
 

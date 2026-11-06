@@ -7,7 +7,6 @@ import 'cache.dart';
 import 'command.dart';
 import 'formatter.dart';
 import 'git.dart';
-import 'host_build.dart';
 import 'runner.dart';
 import 'selector.dart';
 
@@ -25,7 +24,6 @@ class GateOptions {
     this.forceFullCheck = false,
     this.dryRun = false,
     this.testLogWriter,
-    this.testMode = false,
   });
 
   final String repoRoot;
@@ -52,16 +50,11 @@ class GateOptions {
   /// 测试模式下额外写入 fake log 的行（如 REFS）。
   final void Function(String)? testLogWriter;
 
-  /// 测试模式（CARDMIND_GATE_TEST_MODE=1）：host runtime 库同步跳过，
-  /// 避免在临时 repo 做真实 dll 复制。
-  final bool testMode;
-
   GateOptions copyWith({
     TestIndex? index,
     List<String>? stagedFilesOverride,
     bool? forceFullCheck,
     bool? dryRun,
-    bool? testMode,
   }) {
     return GateOptions(
       repoRoot: repoRoot,
@@ -75,61 +68,16 @@ class GateOptions {
       forceFullCheck: forceFullCheck ?? this.forceFullCheck,
       dryRun: dryRun ?? this.dryRun,
       testLogWriter: testLogWriter,
-      testMode: testMode ?? this.testMode,
     );
   }
 }
 
-/// 测试文件里 `import 'support/x.dart'`（相对 `test/`）或
-/// `import 'package:cardmind/test/support/x.dart'` 的包别名形式。
-/// 命中即把该测试文件记为 `test/support/x.dart`（stem `x`）的 import 方。
-final RegExp _supportImportPattern = RegExp(
-  "import\\s+['\"](?:package:cardmind/test/)?support/([A-Za-z0-9_]+)\\.dart['\"]",
-);
-
-/// 扫描仓库现有测试资产。
+/// 扫描仓库现有测试资产（仅 Rust 测试 target；Flutter/Dart 测试索引已随
+/// lib/test 整删移除——门禁 TSX 侧只有全量 `npx tsx --test`，不做文件级路由）。
 Future<TestIndex> scanTestIndex(String repoRoot) async {
-  final flutter = <String>{};
-  final rust = <String>{};
-  // test/support/ fake stem → import 它的测试文件（派生，不手抄）。
-  final importers = <String, Set<String>>{};
-  final testDir = Directory('$repoRoot/test');
-  if (testDir.existsSync()) {
-    // 递归扫描：test/services、test/models 子目录的测试，以及
-    // test/support/ 下的共享 fake（非 _test.dart，分类 dartBusiness，
-    // 但列入 flutterTestFiles 供 _maybePairing/_maybeSync/_relatedDartTests 命中）。
-    for (final f in testDir.listSync(recursive: true).whereType<File>()) {
-      final p = f.path.replaceAll(Platform.pathSeparator, '/');
-      if (p.endsWith('_test.dart') ||
-          (p.endsWith('.dart') && p.contains('/test/support/'))) {
-        flutter.add(_repoRelative(repoRoot, f.path));
-      }
-    }
-    // 从测试文件内容派生 support fake 的 import 方：新增/重命名
-    // test/support/ 下的 fake、或调整测试的 import 方时自动纳入，无需
-    // 维护手抄映射（手抄必然漂移，新测试会默默不被门禁选中）。fake stem
-    // 必须真实存在于 test/support/（在 flutter 索引里）才记录：
-    // import 'support/x.dart' 但 x.dart 不在索引（拼错/已删除）时不得建
-    // importer 映射——否则该 stem 会被锚成「有映射」而跳过调用方的
-    // fail-closed 全量兜底。
-    for (final f in testDir.listSync(recursive: true).whereType<File>()) {
-      final p = f.path.replaceAll(Platform.pathSeparator, '/');
-      if (!p.endsWith('_test.dart')) continue;
-      final rel = _repoRelative(repoRoot, f.path);
-      for (final m in _supportImportPattern.allMatches(f.readAsStringSync())) {
-        final stem = m.group(1)!;
-        if (flutter.contains('test/support/$stem.dart')) {
-          importers.putIfAbsent(stem, () => <String>{}).add(rel);
-        }
-      }
-    }
-  }
-  final supportImporters = <String, List<String>>{};
-  for (final e in importers.entries) {
-    supportImporters[e.key] = e.value.toList()..sort();
-  }
   // 引用 `api::` 的 Rust 测试 target（派生，不手抄）。
   final apiConsumers = <String>{};
+  final rust = <String>{};
   final rustTestsDir = Directory('$repoRoot/rust-backend/tests');
   if (rustTestsDir.existsSync()) {
     // 递归扫描按 cargo target 规则索引（与 selector 的 rustTestTargetName
@@ -151,12 +99,7 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
       }
     }
   }
-  return TestIndex(
-    flutterTestFiles: flutter,
-    rustTestTargets: rust,
-    supportImporters: supportImporters,
-    rustApiConsumers: apiConsumers,
-  );
+  return TestIndex(rustTestTargets: rust, rustApiConsumers: apiConsumers);
 }
 
 /// Rust 测试源码里引用 FRB 导出层的形态。
@@ -366,70 +309,27 @@ Future<int> runFull(GateOptions o) async {
   return 0;
 }
 
-/// 完整 host suite：docs lint → clippy → cargo test 全量 → build host lib →
-/// 同步 host runtime 库 → codegen（改变生成文件则阻止）→ 再次 format-first（改变则阻止）→ analyze → flutter test 全量。
+/// 完整 host suite：docs lint → clippy → cargo test 全量 → build-lib
+/// （`cargo build --release`，只做 release 构建检查）→ 再次 format-first
+/// （改变则阻止）→ tsx test 全量。
+/// （frb codegen、flutter analyze/test 与 Flutter 时代 runtime 库复制已随
+/// lib/ 整删移除；NSH 把 backend 作为 crate 编进 nsh-app，无运行态 dylib。）
 Future<int> runFullSuite(GateOptions o) async {
-  final generatedBefore = snapshotGeneratedFiles(o.repoRoot);
-
   final steps = <GateCommand>[
     Commands.docsLint(),
     Commands.clippy(),
     Commands.rustFullTest(),
     Commands.hostBuildLib(),
-    Commands.codegen(),
   ];
   for (final step in steps) {
     final exit = await _runStep(o, step);
     if (exit != 0) return exit;
   }
 
-  // build 步骤成功后：把 host runtime 库同步到运行态路径。
-  // 同步是 Dart 进程内文件操作，不走 runner、不受单步硬超时限制；
-  // cargo build 本身已由 runner 超时保护。dry-run 只打印；testMode 跳过。
+  // 第二次 format-first（dry-run 只打印；真实跑时改变文件则阻止）。
   if (o.dryRun) {
-    String dest;
-    try {
-      dest = hostRuntimeSpec(detectHostPlatform()).runtimeDestRel;
-    } on UnsupportedError {
-      dest = '<unsupported host platform>';
-    }
-    o.log('  [dry-run] sync host runtime library: $dest');
-  } else if (o.testMode) {
-    o.log('  [test-mode] host runtime library sync skipped');
+    o.log('  [dry-run] format-first #2');
   } else {
-    HostRuntimeSpec spec;
-    try {
-      spec = hostRuntimeSpec(detectHostPlatform());
-    } on UnsupportedError catch (e) {
-      o.logError('[fail] rust:build-lib sync: ${e.message}');
-      return 1;
-    }
-    final err = syncHostRuntimeLibrary(o.repoRoot, spec.platform);
-    if (err != null) {
-      o.logError('[fail] rust:build-lib sync: $err');
-      return 1;
-    }
-    o.log('  [ok] host runtime library synced: ${spec.runtimeDestRel}');
-  }
-
-  // codegen 后：生成内容变化 → 阻止，要求提交生成结果
-  // （dry-run 不执行 codegen/format，不比较快照，避免副作用）
-  if (o.dryRun) {
-    o.log('  [dry-run] codegen change check');
-    o.log('  [dry-run] format-first (after codegen)');
-  } else {
-    final generatedAfter = snapshotGeneratedFiles(o.repoRoot);
-    final genChanged = _changedKeys(generatedBefore, generatedAfter);
-    if (genChanged.isNotEmpty) {
-      o.logError('flutter_rust_bridge_codegen generate 改变了生成文件，push 被阻止：');
-      for (final p in genChanged) {
-        o.logError('  $p');
-      }
-      o.logError('请提交生成结果后重试。');
-      return 1;
-    }
-
-    // codegen 后再次 format-first
     final formatter = Formatter(
       repoRoot: o.repoRoot,
       runner: o.runner,
@@ -441,7 +341,7 @@ Future<int> runFullSuite(GateOptions o) async {
       return 1;
     }
     if (format2.changedPaths.isNotEmpty) {
-      o.logError('codegen 后 format-first 改变了文件，push 被阻止：');
+      o.logError('第二轮 format-first 改变了文件，push 被阻止：');
       for (final p in format2.changedPaths) {
         o.logError('  $p');
       }
@@ -449,9 +349,7 @@ Future<int> runFullSuite(GateOptions o) async {
     }
   }
 
-  final analyze = await _runStep(o, Commands.analyze());
-  if (analyze != 0) return analyze;
-  final test = await _runStep(o, Commands.flutterFullTest());
+  final test = await _runStep(o, Commands.tsxTest());
   if (test != 0) return test;
   return 0;
 }
@@ -478,6 +376,13 @@ Future<int> _runStep(GateOptions o, GateCommand step) async {
       '[fail] ${step.label} exit=${r.exitCode}$timeoutMark '
       'elapsed=${r.elapsed.inSeconds}s',
     );
+    // 步骤把有用输出写在 stdout 的（docs:lint 缺失清单），转发到 stderr，
+    // 否则只剩一行 [fail]、看不到原因；与 stderr 相同则跳过避免重复。
+    final stdoutText = r.stdout.trim();
+    if (stdoutText.isNotEmpty && stdoutText != r.stderr.trim()) {
+      o.logError('[stdout] ${step.label}');
+      o.logError(r.stdout);
+    }
     o.logError(r.stderr);
     return r.timedOut ? CommandRunner.timeoutExitCode : r.exitCode;
   }
@@ -504,24 +409,6 @@ void printPlan(GateOptions o, GatePlan plan, {required String title}) {
   for (final s in plan.steps.skip(2)) {
     o.log('  $s');
   }
-}
-
-List<String> _changedKeys(
-  Map<String, String> before,
-  Map<String, String> after,
-) {
-  final changed = <String>{};
-  for (final entry in before.entries) {
-    if (after[entry.key] != entry.value) {
-      changed.add(entry.key);
-    }
-  }
-  for (final key in after.keys) {
-    if (!before.containsKey(key)) {
-      changed.add(key);
-    }
-  }
-  return changed.toList()..sort();
 }
 
 String _repoRelative(String repoRoot, String absPath) {

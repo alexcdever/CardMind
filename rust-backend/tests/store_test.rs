@@ -138,7 +138,8 @@ fn link_index_tracks_outgoing_and_back_links() {
     let store = NoteStore::new(":memory:").unwrap();
 
     let note_a = NoteCrdt::new();
-    note_a.set_content("# A\n\n链接到 [[note-b|B 的别名]] 和 [[note-c]]");
+    // 混排：旧格式 [[id|alias]] + 新格式 [alias](cardmind://note/id)（P4-2 双格式读）
+    note_a.set_content("# A\n\n链接到 [[note-b|B 的别名]] 和 [note-c](cardmind://note/note-c)");
     store.sync_note("note-a", &note_a).unwrap();
 
     let note_b = NoteCrdt::new();
@@ -176,8 +177,8 @@ fn resync_rebuilds_the_link_index() {
     store.sync_note("note-a", &note).unwrap();
     assert_eq!(store.outgoing_links("note-a").unwrap().len(), 1);
 
-    // 更新正文后重新同步，链接索引应重建（旧链接消失）
-    note.set_content("[[new-target]]");
+    // 更新正文后重新同步，链接索引应重建（旧链接消失；新格式同样计入索引）
+    note.set_content("[new-target](cardmind://note/new-target)");
     store.sync_note("note-a", &note).unwrap();
     let out = store.outgoing_links("note-a").unwrap();
     assert_eq!(out.len(), 1);

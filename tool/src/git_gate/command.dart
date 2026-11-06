@@ -11,9 +11,7 @@ enum CommandKind {
   clippy(20),
   rustTest(30),
   buildLib(40),
-  codegen(50),
-  analyze(60),
-  flutterTest(70),
+  tsxTest(70),
   pythonTest(80);
 
   const CommandKind(this.priority);
@@ -53,7 +51,7 @@ class GateCommand {
 abstract final class Commands {
   static GateCommand formatDart() => const GateCommand(
     executable: 'dart',
-    arguments: <String>['format', 'lib', 'test', 'integration_test', 'tool'],
+    arguments: <String>['format', 'tool'],
     kind: CommandKind.formatDart,
     label: 'format:dart',
   );
@@ -118,9 +116,8 @@ abstract final class Commands {
     workingDirectory: 'rust-backend',
   );
 
-  /// 跨平台 host runtime build：cargo build --release（编译 host 动态库）。
-  /// 产物同步到运行态路径由 host_build.dart 的 syncHostRuntimeLibrary 完成，
-  /// 不再调用 tool/build.dart（其硬编码 macOS dylib 路径，Windows 必失败）。
+  /// release 构建检查：`cargo build --release`。
+  /// NSH 版把 backend 作为 crate 编进 nsh-app，不存在运行态动态库复制步骤。
   static GateCommand hostBuildLib() => const GateCommand(
     executable: 'cargo',
     arguments: <String>['build', '--release'],
@@ -129,29 +126,16 @@ abstract final class Commands {
     workingDirectory: 'rust-backend',
   );
 
-  static GateCommand codegen() => const GateCommand(
-    executable: 'flutter_rust_bridge_codegen',
-    arguments: <String>['generate'],
-    kind: CommandKind.codegen,
-    label: 'frb:codegen',
+  /// nsh-app 的 TSX 全量测试：node --test 语义，匹配根级 *_test.ts；
+  /// 在 nsh-app/ 目录跑（package.json type:module + tsx 依赖）。
+  /// executable 固定 'npx'——Windows 上由 runner.resolveExecutable 解析为 npx.cmd。
+  static GateCommand tsxTest() => const GateCommand(
+    executable: 'npx',
+    arguments: <String>['tsx', '--test', '*_test.ts'],
+    kind: CommandKind.tsxTest,
+    label: 'tsx:test',
+    workingDirectory: 'nsh-app',
   );
-
-  static GateCommand analyze() => const GateCommand(
-    executable: 'flutter',
-    arguments: <String>['analyze'],
-    kind: CommandKind.analyze,
-    label: 'flutter:analyze',
-  );
-
-  /// flutter test；[files] 为空时表示全量测试。
-  static GateCommand flutterTest(List<String> files) => GateCommand(
-    executable: 'flutter',
-    arguments: <String>['test', '--timeout', '5m', ...files],
-    kind: CommandKind.flutterTest,
-    label: files.isEmpty ? 'flutter:test:full' : 'flutter:test',
-  );
-
-  static GateCommand flutterFullTest() => flutterTest(const <String>[]);
 
   /// tool/release 下发布脚本的 Python 单元测试（unittest discover）。
   /// 参数与手动验证命令一致：discover -s tool/release -p test_*.py。
