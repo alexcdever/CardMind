@@ -78,6 +78,7 @@ function recordEditorRef(ref: EditorRef): void {
 function recordRichSession(session: RichEditorSession): void {
   liveSession = session;
   liveKind = "rich";
+  noteLinkCursor = 0;
   bumpMountCount(session);
 }
 
@@ -126,8 +127,9 @@ function nodeSize(node: RichNodeJSON): number {
   return size;
 }
 
-/** 文档里第一条带 `cardmind://note/` link mark 的文本的文档位范围。 */
-function firstNoteLinkRange(doc: RichNodeJSON): { from: number; to: number } | null {
+/** 文档里所有带 `cardmind://note/` link mark 的文本的文档位范围（按文档顺序）。 */
+function noteLinkRanges(doc: RichNodeJSON): { from: number; to: number }[] {
+  const ranges: { from: number; to: number }[] = [];
   let pos = 0;
   for (const block of doc.content ?? []) {
     let textPos = pos + 1;
@@ -137,7 +139,7 @@ function firstNoteLinkRange(doc: RichNodeJSON): { from: number; to: number } | n
         const href = (inline.marks ?? []).find((mark) => mark.type === "link")
           ?.attrs?.href;
         if (typeof href === "string" && href.startsWith("cardmind://note/")) {
-          return { from: textPos, to: textPos + length };
+          ranges.push({ from: textPos, to: textPos + length });
         }
         textPos += length;
       } else {
@@ -146,16 +148,22 @@ function firstNoteLinkRange(doc: RichNodeJSON): { from: number; to: number } | n
     }
     pos += nodeSize(block);
   }
-  return null;
+  return ranges;
 }
 
-/** `f9`：把选区放到文档第一条笔记链接上（等价于按下链接——`link` 的
- *  `enableClickSelection` 按下即选中整段；headless 无法真的点文本坐标）。 */
-function selectFirstNoteLink(): void {
+/** `f9` 的下一条笔记链接游标（按会话重置，环状轮转）。 */
+let noteLinkCursor = 0;
+
+/** `f9`：把选区放到文档里下一条笔记链接上（从第一条起轮转；等价于按下链接
+ *  ——`link` 的 `enableClickSelection` 按下即选中整段；headless 无法真的点
+ *  文本坐标）。轮转让测试能在同一篇文档里分别选中自链与普通链接。 */
+function selectNextNoteLink(): void {
   if (liveKind !== "rich" || liveSession === null) return;
-  const range = firstNoteLinkRange(liveSession.doc);
-  if (range === null) return;
-  liveSession.run(setTextSelection(range.from, range.to));
+  const ranges = noteLinkRanges(liveSession.doc);
+  if (ranges.length === 0) return;
+  const index = noteLinkCursor % ranges.length;
+  noteLinkCursor = (index + 1) % ranges.length;
+  liveSession.run(setTextSelection(ranges[index].from, ranges[index].to));
 }
 
 function parseScenario(raw: string | null): Scenario {
@@ -303,7 +311,8 @@ function Harness(): JSX.Element {
   //   f7 / mod+shift+l → 注入 `test.append` 的内容（rich=选区插入，source=末尾）
   //   f8 → 全选（rich=session.run selectAll；source=Editor 内建 mod+a 更准，
   //        但 f8 统一接口；RichEditor headless 下 mod+a 不生效——0.4.0 实测）
-  //   f9 → 选区落到第一条 `cardmind://note/` 链接（WYSIWYG 链接气泡菜单）
+  //   f9 → 选区落到下一条 `cardmind://note/` 链接（从第一条起轮转；
+  //        WYSIWYG 链接气泡菜单）
   //   f* 双键位：RichEditor 聚焦时吞 mod+shift+*（0.4.0 实测），f 键照常到达。
   effect(() => {
     const unbind = keymap.bind({
@@ -314,7 +323,7 @@ function Harness(): JSX.Element {
           liveSession.run({ command: "selectAll" });
         }
       },
-      f9: () => selectFirstNoteLink(),
+      f9: () => selectNextNoteLink(),
       "mod+shift+e": () => void dumpEditorValue(),
       "mod+shift+l": () => void appendAtEnd(appendText ?? ""),
     });

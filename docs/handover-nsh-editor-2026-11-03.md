@@ -92,7 +92,7 @@ registry = 'sparse+https://rsproxy.cn/index/'
 7. **`[[` 补全（两条路径，共用候选行）**：源码模式走 `editor_page.tsx` 自绘候选 + `editor.edit()`（文本前缀探测，支持含空格标题，不要切回内建 completion）；WYSIWYG 走 0.4.0 `suggestion` 插件（`char:"[["`、`allowSpaces`、`anyPrefix`、`captureKeys`），编辑页轮询 `session.suggestion("wikilink")` 取 query/keyCount，接受用 `replaceSuggestion` 插 link mark。选区是 ProseMirror 位而非文本 offset，两条路径不共用替换逻辑。保存格式统一 `[别名](cardmind://note/<id>)`。**`suggestion()` 必须排在 `starterKit()` 之前**：keydown 按插件顺序分派，否则 Enter 先被 starterKit 吃掉（插入新段、建议失活）。多字符触发 `char:"[["` 实测可用（单个 `[` 不出候选）。
 8. **Escape**：WYSIWYG 下 `suggestion` 插件自己消解 Escape（state 变 inactive，候选行清空）；源码模式下 `Editor` 聚焦时平台层吞掉 Escape，候选行仍有「关闭候选」按钮兜底。
 9. **模式切换**（P4-3a：原「预览切换」）：WYSIWYG⇄源码互切会重建编辑器实例（撤销栈重置，与旧单栏预览切换同口径）；`RichEditor` 的 `editor` prop 只在视图创建时取一次，换 session 必须换 key——模式切换整树卸载/重挂天然满足。≥1280 并排预览已删（WYSIWYG 即排版视图）。
-10. **RichEditor headless 使用要点（0.4.0 实测）**：`<RichEditor>` 必须给非零尺寸 style（`flex:1`）才挂载；`app.type`/`app.texts()`/`id:`/`label:` 可用，`app.press`/`mod+shift+*`/`mod+a` 不可用（被编辑器吞）；`session.on()` 监听器绑调用方作用域——要挂 effect 不要挂 render thunk。`[[` 建议的按键（方向键/Enter/Tab）被插件吞掉，但会记进 `session.suggestion()` 的 `lastKey`/`keyCount`，编辑页据此移动高亮/接受。链接跳转不能用 `app.press` 点正文（RichEditor 无 onLinkPress），测试用 harness 的 `f9` 把选区放到第一条 `cardmind://` 链接上。**按 f6 等非捕获键会结束活动建议**（ArrowDown→Enter 之间不能 dump 全文，读文本用 `app.texts()`）；Escape 后要删掉文本里的 `[[` 才会重新触发。首挂载 dev 构建下随文档规模超线性（20k≈38s/50k>180s），是已知性能风险（release 待测，见 progress §25）。
+10. **RichEditor headless 使用要点（0.4.0 实测）**：`<RichEditor>` 必须给非零尺寸 style（`flex:1`）才挂载；`app.type`/`app.texts()`/`id:`/`label:` 可用，`app.press`/`mod+shift+*`/`mod+a` 不可用（被编辑器吞）；`session.on()` 监听器绑调用方作用域——要挂 effect 不要挂 render thunk。`[[` 建议的按键（方向键/Enter/Tab）被插件吞掉，但会记进 `session.suggestion()` 的 `lastKey`/`keyCount`，编辑页据此移动高亮/接受。链接跳转不能用 `app.press` 点正文（RichEditor 无 onLinkPress），测试用 harness 的 `f9` 把选区放到下一条 `cardmind://` 链接上（从第一条起轮转，同篇文档有自链与普通链接可分别选中）。**按 f6 等非捕获键会结束活动建议**（ArrowDown→Enter 之间不能 dump 全文，读文本用 `app.texts()`）；Escape 后要删掉文本里的 `[[` 才会重新触发。首挂载 dev 构建下随文档规模超线性（20k≈38s/50k>180s），是已知性能风险（release 待测，见 progress §25）。
 11. **应用日志**：NSH 版 Rust `debug_log` 目前只写 **stderr**（`[cardmind:log] …` 单行）+ `tracing`，**没有文件落盘**；设置页「日志目录」只显示约定路径说明（NSH 无打开目录 API）。Flutter 版用 `path_provider` 写 `<application support>/logs/cardmind.log` 及其 macOS 沙箱容器坑，已随平台工程删除而不适用——详见 `AGENTS.md`「日志与数据目录」。
 12. **数据目录**：`nsh-app/src/lib.rs::data_dir()` 旧版目录优先（macOS `~/Library/Application Support/com.cardmind.v2`、Windows `%APPDATA%\com.cardmind\cardmind`、Linux `$XDG_DATA_HOME/com.cardmind.cardmind`），回退到 NSH 自有目录 `com.cardmind.nsh`；回退时才 `create_dir_all`。
 13. **默认 headless，不自动开 GUI**：验证一律优先无窗口命令——`nsh check` / `npx tsx --test` / `nsh test`（headless runner）/ `cargo test` / `node build-nsh.mjs` / `nsh package` 都不会弹窗。只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口；不要为了跑测试自动执行它们。需要目视 UI 时由人自己 `open`，或在用户明确要求下用 `open -g`（后台、不抢焦点）→ 截图 → 立即退出，窗口只一闪。真机项（Windows IME、Android/iOS 软键盘）本来就只能在对应真机跑，不在本机弹窗。
@@ -110,8 +110,8 @@ nsh-app/
   editor_page/rich.ts    WYSIWYG 接缝：richSchema / canonicalMarkdown / createNoteRichSession（含 `[[` suggestion）/ richEditorStyles
   editor_page/controller.ts  控制器：保存/关闭、候选（源码+WYSIWYG 两条路径）、模式切换、链接跳转
   editor_text.ts         纯函数：[[ 探测/标签命中/UTF-16 offset/CRLF 归一/noteLinkUrl
-  editor_page.test.tsx   nsh test 行为测试（36 条）
-  EditorHarness.tsx      nsh test 入口（假 EditorRepository；探针 f6 全文 dump/f7 注入/f8 全选/f9 选中第一条笔记链接）
+  editor_page.test.tsx   nsh test 行为测试（37 条）
+  EditorHarness.tsx      nsh test 入口（假 EditorRepository；探针 f6 全文 dump/f7 注入/f8 全选/f9 选中下一条笔记链接（轮转））
   editor_text_test.ts    node:test 纯函数测试
   note_list.tsx          桌面三栏 + 移动列表/新建入口（DesktopEditorPane 已接真实 EditorPage）
   theme.ts               editorTypography、颜色/间距/圆角 token
@@ -130,8 +130,9 @@ spike/nsh-editor-md-probe/  P2 探针与截图（已提交）
 | 检查 | 结果 |
 |---|---|
 | `nsh check .` | 0 错误 |
-| `npx tsx --test "*_test.ts"` | 247 pass / 1 skipped / 0 fail（248；P4-3a 后） |
-| `nsh test --filter editor` | 31/31（P4-3a 后；P3 基线 26/26） |
+| `npx tsx --test "*_test.ts"` | 247 pass / 1 skipped / 0 fail（248；P4-4 后） |
+| `nsh test --filter editor` | 37/37（P4-4 后；含自链不显示气泡菜单用例） |
+| `nsh test`（无 filter） | 39 tests / 38 pass / 1 fail（唯一失败 = Windows-only `coexist_notes_probe`，macOS 环境项） |
 | `node build-nsh.mjs` | exit 0，`out/bundle.nshc` ≈ 506KB |
 | `cargo test`（rust-backend） | exit 0，0 failed |
 | `out/capabilities.json` | `clipboard: true`，无 `webview` |

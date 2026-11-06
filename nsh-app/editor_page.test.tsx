@@ -1,7 +1,7 @@
 // 编辑页行为测试（`nsh test`；harness = EditorHarness.tsx，假 repository，不碰真实 DB/iroh）。
 //
 // P4-3a 口径：默认 WYSIWYG（`RichEditor`，label:富文本编辑器，探针键 f6=全文
-// dump / f7=当前选区注入 append / f9=选中第一条笔记链接）；源码模式经「源码」
+// dump / f7=当前选区注入 append / f9=选中下一条笔记链接（轮转））；源码模式经「源码」
 // 切换（label:源码编辑器，探针键 mod+shift+e/l 仍可用）。P4-3b 起 `[[` 候选与
 // `cardmind://` 链接跳转两条模式都有覆盖（WYSIWYG 走 suggestion 插件 + bubbleMenu）。
 //
@@ -945,4 +945,34 @@ test("editor: 未注入 onNavigateNote 时链接跳转走默认 openEditor push"
   await app.waitFor("id:link-bubble-menu");
   await app.press("label:打开笔记");
   await app.waitUntil(() => hasText(app, "Beta 笔记内容"));
+});
+
+test("editor: 光标落在指向当前笔记的链接上不显示气泡菜单（自链无死按钮）", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      {
+        id: "note-a",
+        content: "自指 [自己](cardmind://note/note-a) 另见 [乙](cardmind://note/note-b)",
+      },
+      { id: "note-b", content: "Beta 笔记内容" },
+    ],
+    selectedNoteId: "note-a",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(RICH);
+  // f9 轮转：第一次选中自链 → 「打开笔记」点不动（id === currentId），菜单不出现。
+  await app.keyboard.press("f9");
+  await app.wait(300);
+  expect(app.shows("id:link-bubble-menu")).toBe(false);
+  // 第二次选中普通链接 → 菜单出现，证明上面的「不出现」是自链判断而非探针没选中。
+  await app.keyboard.press("f9");
+  await app.waitFor("id:link-bubble-menu");
+  // 第三次回到自链 → 菜单从「已显示」收起，排除「从来没显示过」的假阴性。
+  await app.keyboard.press("f9");
+  await app.waitFor("id:link-bubble-menu", { state: "gone" });
+  // 全程没有导航走开（自链不压栈、不切笔记），仍在原笔记。
+  expect(hasText(app, "自指")).toBe(true);
 });

@@ -1256,7 +1256,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | commit | 内容 |
 |---|---|
 | `25fc5431` | `feat(editor): WYSIWYG [[ 候选（suggestion）+ cardmind 链接「打开笔记」跳转`（10 文件 +504/−31） |
-| `90b3aa7d` | `docs(progress): §26 P4-3b + 文档同步当前事实`（4 文件 +87/−14） |
+| `9f48ff92` | `docs(progress): §26 P4-3b + 文档同步当前事实`（4 文件 +87/−14） |
 
 > 代码与文档分 2 个 commit（候选/链接两条交互在同一批编辑器文件里，hunk 交织，不再细分）。
 
@@ -1343,6 +1343,82 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 
 #### 审查的 3 条非阻塞观察（留给 P4-4 收尾轮）
 
-1. §26 提交表写 `90b3aa7d`，实际 docs commit 是 `9f48ff92`（rebase 后未回填）——文档瑕疵，**下一轮顺手改**。
+1. §26 提交表的 docs commit 写成了一个不存在的 hash（rebase 后未回填）——文档瑕疵，**下一轮顺手改**（已在 P4-4 §28 修正为 `9f48ff92`）。
 2. 「链接指向当前笔记不动作」无测试覆盖；且自链上气泡菜单仍显示「打开笔记」死按钮——建议 `syncActiveNoteLink` 对自链置 null（菜单干脆不出）。
 3. `allowSpaces: true` 偏离 task.md 建议的 `false`，但与源码模式 `linkPrefixFromContext` 同口径且有测试锁，判定合理。
+
+## 28. P4-4：0.4.0 迁移收尾（文档校正 + 自链菜单不显示 + 全量体检）（2026-11-06，worktree `p4-4-closeout`，基线 `d4794c87`）
+
+### 本轮改了什么
+
+| 项 | 内容 |
+|---|---|
+| hash 校正（AC1） | §26 提交表 docs commit 回填为 `9f48ff92`（原写的 hash 不存在于本分支历史）；全文 hex token 用 `git cat-file -e`/`^{commit}` 复核一遍：其余「不存在」的都是上游 nsh 仓 commit、nsh CLI 版本号、SHA-256 前缀、设备 ID、文件大小、窗口句柄等**非本仓 commit**，不改。§27 审查观察条 1 同步标注「已修」并去掉旧 hash 串，满足 `grep "90b3aa7d\|7099682f" docs/` 为空。 |
+| 自链气泡菜单（AC2） | `controller.syncActiveNoteLink()`：`id === currentId` 时不写进 `activeNoteLink`（菜单干脆不出）；`openActiveNoteLink()` 里同款防御保留（双保险）。修法动机：原实现菜单会显示「打开笔记」按钮但点了因 `id === currentId` 直接 return——死按钮。 |
+| f9 探针扩展 | `EditorHarness` `firstNoteLinkRange` → `noteLinkRanges` + `noteLinkCursor`（每次新 RichSession 归零）：**f9 从第一条起轮转选中笔记链接**，同一篇文档里有自链与普通链接时可分别选中。已按任务约定允许改动（它服务正式测试）。 |
+| 新增行为测试 | `editor_page.test.tsx` 新增 1 条：正文含「指向自己的链接」+ 一条普通链接 → f9 第一次选中自链 → `id:link-bubble-menu` **不出现**；f9 第二次选中普通链接 → 菜单出现（排除「探针没选中」假阴性）；f9 第三次回到自链 → 菜单从已显示收起（排除「从来没显示过」假阴性）。 |
+| handover 同步 | `f9 选中第一条` → `选中下一条（轮转）`；`editor_page.test.tsx 36 条` → `37 条`。 |
+
+### AC3 全仓自检（Preview/TextView 逐处判定）
+
+- `grep "90b3aa7d\|7099682f" docs/`：**空** ✅
+- `grep "Preview|preview|TextView" nsh-app --include=*.ts{,x}`（去掉 node_modules/.nsh）：11 处命中，逐处判定**全部合理**——
+  - `note_list/types|helpers|note_row`、`trash_page/types`、`EditorHarness` 的 `contentPreview`/`previewLine` = **列表行摘要**（笔记列表第二行），与编辑器预览面板无关，保留；
+  - `editor_page.tsx` 头注「P4-3a 起 `TextView` 预览面板移除（WYSIWYG 即排版视图，预览无意义）」、「`Editor` 保留为『源码模式』（原 `preview` 语义反转且改名）」= **历史因果注释**，记录为什么现在没有预览面板，保留；
+  - 结论：仓库现状「无编辑器预览面板」，无遗留引用。
+
+### 本轮最终体检（AC4–AC9，逐个串行跑）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .`（改后复跑） | exit 0（837ms 类型检查 + 589ms crate 构建） |
+| `npx tsx --test "*_test.ts"` | **248 tests / 247 pass / 1 skipped / 0 fail**（与基线一致） |
+| `nsh test --filter editor` | **37/37**（1m35s；36 既有 + 新增自链用例） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（18.0s） |
+| `nsh test`（无 filter，AC7） | **39 tests / 38 passed / 1 failed**；唯一失败是基线既有 Windows-only `coexist_notes_probe`（`APPDATA` NotPresent）——**本轮引入失败 = 0** |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed**（本轮零 Rust 改动，不设 CARGO_TARGET_DIR） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app`（release runner 14.1s） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | Formatted 10 files，**0 changed** |
+| `dart run tool/lint/markdown_references_linter.dart` | Scanned 50 files / 1107 references，**All references are valid** |
+
+### 提交
+
+| commit | 内容 |
+|---|---|
+| `48d73b80` | `fix(editor): 自链时气泡菜单不显示（+测试）`（3 文件 +56/−14） |
+| （本提交） | `docs(progress): §28 收尾 + hash 校正`（3 文件） |
+
+## 分支最终状态（整支 `migration/nsh`，从 `main` 到现在的盘点）
+
+### 阶段盘点
+
+`main..HEAD` 共 200+ 提交、40+ 合并，按阶段分六段（详见 §2、§10–§27）：
+
+1. **NSH 迁移（1.x–4.x 施工段）**：骨架/组件库/页面三件套 → 事件桥与 Backend 模块闭环 → Flutter 链整删 → 数据共存 → 编辑器 web 工程 → 二维码配对 → Android cfg → nsh 0.2.0。
+2. **编辑器重构（P1–P3，nsh 0.3.0 时代）**：P1 升 0.3.0（`94302655`）→ P2 原生 `Editor` 替换 WebView+Tiptap（删 `web/**`/tiptap/esbuild/jsdom）→ P3 `TextView` 预览 + 桌面第三栏真编辑器 + 移动新建入口（`92e622b2`）。
+3. **P4 补强（hardening + finish）**：Each key 重建判别、移动新建行为测试、5 万字预览性能（headless p50≈4.6s）、Windows/移动验证清单、Phase-1 演示脚手架移除（`49de2e65`/`11d70e01`）。
+4. **P1–P3 结构清理（§11–§21）**：P1 死代码清理 → P2 大文件拆分（`lib.rs`/`note_list`/`editor_page`/`devices_page`/`trash`/`settings`/`components`）→ P3 死 export 收敛 + lint stdout + 全仓 CRLF→LF。
+5. **P4-1…P4-4（0.4.0 迁移轮，§22–§28）**：P4-1 nsh 0.4.0 工具链迁移（7 处 breaking API）→ P4-2 笔记链接迁 `[alias](cardmind://note/<id>)`（双格式读 + 惰性迁移 + O(n) 病态输入修复）→ P4-3a 编辑态换 `RichEditor`（WYSIWYG 默认 + 源码模式可切，删 TextView 预览）→ P4-3b WYSIWYG `[[` 候选 + 链接「打开笔记」跳转 → **P4-4 收尾（本节）**。
+6. **SPIKE（§27）**：`RichEditor` 首挂载 O(N²) 根因定位（`nsh-core` 组件区域 reconcile 的 handler 全表扫），已备好可直接提交的 upstream issue 草稿，等用户裁决。
+
+### 当前测试总量（本节点实测）
+
+| 套件 | 数量 |
+|---|---|
+| `nsh test --filter editor` | **37** |
+| `nsh test`（无 filter） | **39**（37 editor + 1 note 移动布局 + 1 coexist_notes_probe） |
+| `npx tsx --test "*_test.ts"` | **248**（247 pass / 1 skipped / 0 fail） |
+| `cargo test`（rust-backend） | **22 个 test target**（~180+ 用例，0 failed） |
+
+### 剩余已知问题清单（收尾裁决，全部非本轮引入）
+
+| 项 | 性质 | 去向 |
+|---|---|---|
+| `coexist_notes_probe` | 环境限制：`APPDATA` 依赖，macOS 必挂 | Windows 上跑/留 `--filter` 策略 |
+| `RichEditor` 首挂载 O(N²)（20k≈38s/50k>180s，dev 构建） | 上游 `nsh-core` 性能问题，已定位根因 | issue 草稿在 §27/07，**等用户是否上报**；真机 release 待复测 |
+| Windows 真机 IME / 移动端软键盘·选区手柄 | 真机项 | `docs/testing/nsh-p4-*-checklist.md` 清单备妥 |
+| 打包签名/分发（`.nshpkg`） | 发布工程 | `cardmind-nshpkg-vs-msix` 经验 + handover §9 |
+| `autoFocus` 真机焦点 | headless 覆盖不到 | 真机验证 |
+
+> 结论：**P4-4 后，「0.4.0 迁移 + 链接格式 + RichEditor 编辑器」三段在代码与文档层面均已闭合**；剩余全是真机/发布/上游裁决项，不再属代码收尾范围。
