@@ -11,6 +11,7 @@
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
 - **迁移收尾已完成**（2026-11，worktree `nsh-cleanup`）：Flutter CI/平台工程目录/`.gitignore` 残留已删，锚点规范改写为 NSH 版，`AGENTS.md` 平台与日志段落改为 NSH 现状。删除项与验证证据见 [`docs/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md) §10。
+- **CI 现状**（2026-11-06，`ci-nsh-package`）：`rust_quality.yml` 仍跑 Rust fmt/clippy/test/coverage；新增 `.github/workflows/nsh_app.yml` 用 nsh CLI 0.4.0 跑前端质量（tsx/`nsh check`/两条带 filter 的 `nsh test`）+ linux/macos/windows/web 打包（仅 main/tag `v*`/dispatch，PR 不打包；iOS/Android 属发布工程未接入，见 §29）。
 
 > 如果用户只想保留源码，不必复制 `node_modules/`、`target/`、`nsh-app/.nsh/`、`nsh-app/out/`；这些都能重新生成（见 §4）。
 

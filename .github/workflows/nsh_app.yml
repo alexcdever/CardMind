@@ -1,0 +1,351 @@
+name: NSH App
+
+# NSH 前端质量 + 三平台打包 workflow。
+#
+# 打包 gating：push 到 main、tag v*、或 workflow_dispatch 才跑 package-*；
+# pull_request 只跑 nsh-quality。
+#
+# 本 workflow 只覆盖 linux / macos / windows / web：
+# iOS（签名 .ipa）与 Android（签名 .apk）需要签名材料与移动 SDK，
+# 属于发布工程，不在此处跑；交接见 docs/handover-nsh-editor-2026-11-03.md。
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+    # paths 对 branch 与 tag push 一视同仁（GitHub 不允许两条 on.push，无法给 tag
+    # 单独一条不带 paths 的触发）——给只改 docs 的 commit 打 v* tag 时整个 workflow
+    # 会被 paths 过滤跳过，此时用 workflow_dispatch 兜底手动触发打包。
+    paths:
+      - 'nsh-app/**'
+      - 'rust-backend/**'      # nsh-app app crate path 依赖 rust-backend
+      - '.github/workflows/nsh_app.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'nsh-app/**'
+      - 'rust-backend/**'
+      - '.github/workflows/nsh_app.yml'
+  workflow_dispatch:
+
+env:
+  # CLI 版本必须等于 nsh-app/Cargo.toml 的 nsh-core/nsh-base 版本，否则 CLI 拒绝。
+  NSH_VERSION: 'v0.4.0'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  nsh-quality:
+    name: NSH Quality (check + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nsh-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # iroh / aws-lc-rs / rusqlite-bundled 在 Ubuntu 上需要这些构建工具（防御性安装）。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # 不用 cache: pnpm —— pnpm-lock.yaml 未提交，setup-node 的 cache 会报错。
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        # install.sh 装到 ~/.nsh 并软链 nsh 到 ~/.local/bin（不在 PATH，须加 GITHUB_PATH）。
+        # 缓存命中时 ~/.local/bin/nsh 软链随缓存恢复，安装脚本幂等重跑也无害。
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        # nsh check/test 的 cargo 默认 target 是 nsh-app/target（不是 rust-backend/target）。
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            Linux-${{ github.job }}-nshapp-target-
+
+      - name: Install JS dependencies
+        # pnpm-lock.yaml 未提交 → 不能 --frozen-lockfile；
+        # pnpm 12 首跑 ERR_PNPM_IGNORED_BUILDS（esbuild build 脚本被拦）→ strict-dep-builds=false。
+        run: pnpm install --config.strict-dep-builds=false
+
+      - name: Run TSX unit tests
+        run: npx tsx --test "*_test.ts"
+
+      - name: nsh check (typecheck + app crate build)
+        run: nsh check .
+
+      - name: nsh test (editor behavior)
+        # 无 filter 的 nsh test 必挂：app crate tests/coexist_notes_probe.rs ›
+        # reads_fixture_db 依赖 Windows APPDATA（expect panic，基线既有）。
+        # filter 同时传给 cargo test，把该用例跳过。
+        run: nsh test --filter "editor:"
+
+      - name: nsh test (note list behavior)
+        # 串行第二次：runner 构建共享 target 缓存，不重编。
+        run: nsh test --filter "note:"
+
+  package-linux:
+    name: Package (linux)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
+    defaults:
+      run:
+        working-directory: nsh-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            Linux-${{ github.job }}-nshapp-target-
+
+      - name: Package linux
+        # 产物嵌套在 <name>/ 子目录：nsh-app/.nsh/out/cardmind/...（与 windows 同构）。
+        run: nsh package . --target linux
+
+      - name: List package output
+        run: ls -laR .nsh/out/
+
+      - name: Upload linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-linux
+          # ** 递归匹配嵌套的 <name>/ 子目录；if-no-files-found 防路径写错时静默产空 artifact。
+          path: nsh-app/.nsh/out/**/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  package-macos:
+    name: Package (macos)
+    runs-on: macos-14
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
+    defaults:
+      run:
+        working-directory: nsh-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nshapp-target-
+
+      - name: Package macos
+        # 产物：nsh-app/.nsh/out/cardmind.app（ad hoc 签名，目录形式）。
+        run: nsh package . --target macos
+
+      - name: Tar .app bundle
+        # .app 是目录：先 tar 再 upload-artifact，保留可执行权限。
+        run: |
+          cd .nsh/out
+          tar -czf cardmind-macos.tar.gz cardmind.app
+
+      - name: Upload macos artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-macos
+          path: nsh-app/.nsh/out/cardmind-macos.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  package-windows:
+    name: Package (windows)
+    runs-on: windows-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
+    defaults:
+      run:
+        working-directory: nsh-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\nsh
+          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        # install.ps1 装到 %LOCALAPPDATA%\nsh 并改注册表 PATH（对当前 job 无效）；
+        # 必须手动把 %LOCALAPPDATA%\nsh\bin 写进 GITHUB_PATH。
+        run: |
+          $env:NSH_VERSION='${{ env.NSH_VERSION }}'
+          irm "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.ps1" | iex
+          echo "$env:LOCALAPPDATA\nsh\bin" >> $env:GITHUB_PATH
+        shell: pwsh
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            nsh-app\target
+          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nshapp-target-
+
+      - name: Package windows
+        # 产物嵌套在 <name>/ 子目录（实测）：nsh-app/.nsh/out/cardmind/cardmind.exe + cardmind.zip。
+        run: nsh package . --target windows
+        shell: pwsh
+
+      - name: List package output
+        run: Get-ChildItem -Recurse .nsh/out/
+        shell: pwsh
+
+      - name: Upload windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-windows
+          # ** 递归匹配嵌套的 cardmind/cardmind.zip；if-no-files-found 防路径写错时静默产空 artifact。
+          path: nsh-app/.nsh/out/**/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  package-web:
+    name: Package (web)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
+    defaults:
+      run:
+        working-directory: nsh-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # 与 nsh-quality / package-linux 一致（若 --target web 需编 Rust crate 则有依赖）。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            Linux-${{ github.job }}-nshapp-target-
+
+      - name: Package web
+        # 产物：nsh-app/.nsh/out/ 静态站点目录（整目录上传，天然兼容 <name>/ 嵌套）。
+        run: nsh package . --target web
+
+      - name: List package output
+        run: ls -laR .nsh/out/
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-web
+          path: nsh-app/.nsh/out/
+          if-no-files-found: error
+          retention-days: 14
