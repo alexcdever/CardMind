@@ -1462,3 +1462,16 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `coexist_notes_probe` 在 macOS 必挂 | Windows-only 测试，真机环境项 |
 | Windows 中文 IME / 移动端软键盘·选区手柄·长按菜单 | 真机验证项（清单见 `docs/testing/`） |
 | `.nshpkg` 签名与分发 | 发布工程项 |
+
+### §27 补记：release 构建复测（2026-11-06，spike worktree）
+
+用 `CARGO_PROFILE_DEV_OPT_LEVEL=3 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=false nsh test` 让 app crate / headless runner 以近似 release 的优化级别编译（近似 `nsh package` 产物；仍含部分 dev 开销，属近似值）。同一探针两档对照：
+
+| 输入 | dev 构建 | opt-level=3（≈release） | 加速 |
+|---|---|---|---|
+| 500 段 × ~40 字（24k 字符） | 4 972 ms | **303 ms** | ~16× |
+| 1 000 段（48k 字符） | 20 377 ms | **885 ms** | ~23× |
+| 2 000 段（97k 字符） | 59 296 ms | **3 849 ms** | ~15× |
+| 1 段 × 100k 字符 | 275 ms | 169 ms | ~1.6× |
+
+**结论更新**：release 下 2 000 块 ≈ 3.8 s——慢但仍「能用」；曲线仍超线性（500→303ms、1000→885ms、2000→3 849ms，指数 ≈1.9），n² 缺陷在 release 里依然存在，只是常量小了 ~15–20×。用户原判断（千级块场景罕见、不报 upstream）在 release 数据下成立。**仍建议将来若撞见真实长笔记慢打开再启用 §5 的根治方案或上报。**

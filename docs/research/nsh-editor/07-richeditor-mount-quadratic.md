@@ -193,7 +193,20 @@ n = 2 000 段时那一次 commit：`perf commit: 12 ops, 25.7–33.4 s, 18036 mo
 >
 > This also affects other views built of many child nodes in one component (long `DataTable`s, `Each` rows, large documents in `TextView`), not only `RichEditor`.
 
-## 7. 复现与证据归档
+## 7. release（opt-level=3）实测补记（2026-11-06）
+
+同一探针，dev vs `CARGO_PROFILE_DEV_OPT_LEVEL=3`（近似 release；app crate 以 O3 编译，无 LTO）：
+
+| 输入 | dev | opt-level=3 | 加速 |
+|---|---|---|---|
+| 500 段（24k 字） | 4 972 ms | **303 ms** | ~16× |
+| 1 000 段（48k 字） | 20 377 ms | **885 ms** | ~23× |
+| 2 000 段（97k 字） | 59 296 ms | **3 849 ms** | ~15× |
+| 1 段 × 100k 字 | 275 ms | 169 ms | ~1.6× |
+
+release 下曲线**仍是超线性**（500→303ms、1000→885ms、2000→3 849ms，指数 ≈1.9），即 O(N²) 缺陷在 release 里依然存在，只是常量小 ~15–20×。结论：**2000 块的极端笔记 release 打开 ≈ 3.8 s**，可接受；千级块场景在生产中罕见。
+
+## 8. 复现与证据归档
 
 - 剖析脚本、`sample` 原始输出、`--trace` 日志、计数器插桩 diff、可验证 patch diff、upstream repro 两文件：`.git/pipeline/spikes/`（会话内归档，不进 Git）。
 - 组件侧表现与处置决定见 `docs/progress-nsh-editor-2026-11-03.md` §27。
