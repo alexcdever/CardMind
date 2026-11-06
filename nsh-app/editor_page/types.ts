@@ -36,8 +36,8 @@ export interface EditorPageProps {
    *  经 `getMarkdown()`/`insertContent` 读全文/注入编辑做断言）；模式切换时重建
    *  会话会再次回调（拿到新实例）。 */
   onRichSession?: (session: RichEditorSession) => void;
-  /** 预览里按下 `cardmind://note/<id>` 链接的跳转入口：默认 `openEditor`（push
-   *  编辑路由）；桌面三栏内嵌时由列表侧改为切换选中（DesktopEditorPane 注入）。
-   *  P4-3a 保留 prop（P4-3b WYSIWYG 链接点击跳转会用它），本轮无预览面板不触发。 */
+  /** 保留接缝：P4-3b 接 WYSIWYG 里点击 `cardmind://note/<id>` 链接的跳转。
+   *  当前零生产读取——预览面板已删、RichEditor `openOnClick:false`，谁都不调用；
+   *  桌面三栏内嵌时仍由列表侧注入 `openNote`（切选中），先留着等 P4-3b 接上。 */
   onNavigateNote?: (noteId: string) => void;
 }

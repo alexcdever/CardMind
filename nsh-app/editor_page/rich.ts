@@ -6,8 +6,9 @@
 // 0.4.0 实测（.pipeline/progress.md 探针）：
 //   - `getMarkdown()` ≡ `schema.serialize(doc,"markdown")`，且不走 doc JSON（便宜）。
 //   - 往返：块级（标题/列表/引用/代码块/分隔线）与行内（粗斜体/行内码/~~删~~/
-//     [a](cardmind://…)）全保真；唯一归一是「段落间多空行 → 一个空行」；
-//     段内 `\n`（行一\n行二）原样保留。
+//     [a](cardmind://…)）全保真；归一是结构性等价（语义不变）但会**改写源码
+//     记号**：段落间多空行→一个空行、Setext 标题→ATX、`__`→`**`、`_`→`*`、
+//     行尾双空格硬换行→`\n`；段内 `\n`（行一\n行二）原样保留。
 //   - `<RichEditor>` headless 下**必须给 style（flex:1）**才会挂载；mod+shift+* 键
 //     会被编辑器吞掉（f* 键不会）。
 //   - `editor` prop 只在视图创建时取一次：换 session 必须换 key（模式切换整体
@@ -31,6 +32,9 @@ export const richSchema: RichSchema = starterSchema();
 
 /** Markdown 的「往返归一」形式：`serialize(parse(md))`。RichEditor 的
  *  parse/serialize 是结构性归一（多空行→一个、标记语法重排），不等于原文。
+ *  除了空行，归一还会**改写源码记号**（语义等价）：Setext 标题→ATX `#`、
+ *  `__粗__`→`**粗**`、`_斜_`→`*斜*`、行尾双空格硬换行→段内 `\n`；用户在源码
+ *  模式打这些记号再切回，看到的是改写后的形式。
  *  脏检测/保存基线必须用 canonical 比较，否则「加载即 dirty」幻影写回。
  *  （仅持久化路径调用；逐键路径不调用——19k 字 parse+serialize ≈50–80ms。） */
 export function canonicalMarkdown(md: string): string {

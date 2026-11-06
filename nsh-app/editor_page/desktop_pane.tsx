@@ -26,9 +26,9 @@ export function DesktopEditorPane(props: {
   onEditorRef?: (ref: EditorRef) => void;
   /** 测试接缝：把内嵌 WYSIWYG 会话交给调用方（`nsh test` 读全文断言）。 */
   onRichSession?: (session: RichEditorSession) => void;
-  /** 预览里按下笔记链接的跳转：桌面三栏应切换选中（由列表侧注入 openNote），
-   *  不传则退回 EditorPage 默认的 `openEditor` push 路由。
-   *  P4-3a 仅保留接缝（预览面板已移除；P4-3b 接 WYSIWYG 链接按下）。 */
+  /** 保留接缝：P4-3b 接 WYSIWYG 里点击笔记链接的跳转。桌面三栏语义是切选中
+   *  （由列表侧注入 openNote）；当前零生产读取（预览面板已删、RichEditor
+   *  `openOnClick:false`），透传先留着等 P4-3b 接上。 */
   onNavigateNote?: (noteId: string) => void;
 }): JSX.Element {
   return (

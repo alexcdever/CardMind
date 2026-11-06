@@ -1140,7 +1140,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 ### 0.4.0 RichEditor 实测结论（写入后续轮次的 API 依据）
 
 - `session.getMarkdown()` ≡ `schema.serialize(doc,"markdown")`，不经 doc JSON，更便宜；19k 字 getMarkdown=22ms（逐键序列化不可行 → update→dirty→防抖→保存时序列化）。
-- 往返保真：块级（标题/列表/引用/代码块/分隔线）+ 行内（粗斜体/行内码/~~删~~/链接含 cardmind://）全保真；唯一归一 = **段落间多空行→一个空行** + `getMarkdown` 可能多尾随 `\n`；段内 `\n`（同段两行）原样。判据 = canonical 形式逐字节（见 `canonicalMarkdown`）。
+- 往返保真：块级（标题/列表/引用/代码块/分隔线）+ 行内（粗斜体/行内码/~~删~~/链接含 cardmind://）全保真；归一是**结构等价但会改写源码模式里的记号**：段落间多空行→一个空行、Setext 标题→ATX `#`、`__粗__`→`**粗**`、`_斜_`→`*斜*`、行尾双空格硬换行→段内 `\n`，另 `getMarkdown` 可能多尾随 `\n`；段内 `\n`（同段两行）原样。判据 = canonical 形式逐字节（见 `canonicalMarkdown`）。
 - headless `nsh test`：`<RichEditor>` **必须有非零尺寸 style**（`flex:1`）才挂载；`id:`/`label:` 可选；`app.texts()` 出渲染后文本块（无 Markdown 标记）；`app.type(label,…)` 真打字；**`app.press` 不可用**（非 pressable）；**mod+shift+* 被编辑器吞**（f* 键可）；`mod+a` headless 不生效（用 `session.run({command:"selectAll"})`）；`session.on("update")` 监听器绑调用方作用域（render thunk 重跑会销毁 → 监听挂 effect）。
 - **性能风险（dev 构建实测）**：RichEditor 首挂载/首布局随文档规模**超线性**：10k≈12s / 20k≈38s / 30k≈66-80s / 50k>180s（mount 一旦就绪仅 ~20ms；createRichEditor ~0.3-0.6s）。疑似每文本节点一个原生视图的首布局成本。release 构建未测；**>20k 字笔记打开有可见延迟**，建议 P4-3b 或专项向上游求证/优化。
 
@@ -1156,3 +1156,10 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### 修复轮（`fa99c0ca` + `7099682f`，2026-11-06）
+
+- **BLOCKER 修复**：删 4 个探针文件（`RichProbeHarness.tsx`、`rich_probe.test.tsx`、`RichProbe3Harness.tsx`、`rich_probe3.test.tsx`）——`rich_probe.test.tsx` 在 `nsh test`（无 filter 默认跑法）下稳定失败（`<RichEditor>` 没给 `style={{flex:1}}`，且 50k 文档挂视图是「首挂载 >180s」路径）；契约结论已固化进本节与 `nsh-automation-anchors.md`。
+- **修复轮 `nsh test`（无 filter 全量）**：**33 tests / 32 passed / 1 failed**（1m40s）——唯一失败是基线既有 Windows-only `coexist_notes_probe`（macOS 无 `APPDATA`，见 §5.7/§P4 已知环境限制；本轮引入失败 = 0）。
+- **顺手修**：`onNavigateNote` 三处 JSDoc 改为「保留接缝、零生产读取、P4-3b 接」；`noteIdFromLinkUrl` 注释标注 P4-3b 复用；`rich.ts` 头注/`canonicalMarkdown` JSDoc 与本节第 1143 行补「结构等价但会改写源码模式里的记号」；`editor_page.test.tsx` perf 注释的「5 万字」改「2 万字」、`TARGET` 4→3 并注释最坏路径对 300s 单测上限的关系。
+- 回归复测（修复轮）：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 248/247/1skip/0fail；`--filter editor` 31/31；`--filter "note: 移动布局"` 1/1；`cargo test` 0 failed；`nsh package . --target macos` 出包；`git_gate full --dry-run` exit 0；`dart format` 0 changed。

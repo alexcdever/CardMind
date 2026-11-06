@@ -718,9 +718,9 @@ test("editor: onChange 未触发时关闭仍保存最新内容（WYSIWYG 经 ses
   expect(app.storage()["test.saved"]).toContain("-尾部");
 });
 
-// ─── P4-3a：5 万字 WYSIWYG 打开/模式切换性能测量 ──────────────────────────────
+// ─── P4-3a：2 万字 WYSIWYG 打开/模式切换性能测量 ──────────────────────────────
 
-/** 构造 ≈50,000 字 Markdown（标题/列表/引用/代码块/wikilink/中文，均匀分布）。 */
+/** 构造 ≈targetChars 字 Markdown（标题/列表/引用/代码块/wikilink/中文，均匀分布）。 */
 function bigMarkdown(targetChars: number): string {
   const parts: string[] = [];
   let n = 0;
@@ -730,7 +730,7 @@ function bigMarkdown(targetChars: number): string {
     const seg =
       `# 第 ${block} 节 标题\n\n` +
       `正文段落，含 [别名${block}](cardmind://note/note-${block}) 与普通文本，用来撑大解析成本。` +
-      `中文内容若干，重复填充以达到五万字量级的真实文档。\n\n` +
+      `中文内容若干，重复填充以达到目标字数规模的真实文档。\n\n` +
       `- 列表项一\n- 列表项二\n- 列表项三\n\n` +
       `> 引用一句话，来自第 ${block} 节。\n\n` +
       "```\nconst x" + block + " = " + block + ";\n```\n\n";
@@ -748,10 +748,13 @@ function percentile(sorted: number[], p: number): number {
 test("editor: 2 万字 WYSIWYG 打开 + 源码⇄WYSIWYG 切换性能（墙钟采样）", async () => {
   // RichEditor 首挂载在 dev（未优化）构建下随文档规模超线性增长（P4-3a 实测：
   // 10k≈12s / 20k≈38s / 30k≈66-80s / 50k>180s，n² 疑似在视图首布局；
-  // createRichEditor 本身仅 ~0.3-0.6s）。5 万字在 dev 下已超 180s，无法在
-  // 单测预算内完成多轮切换——故采样文档取 20k（挂载 ~38s），记录数字不设
-  // 阈值；release 构建预期显著更快（task.md：先测量再定阈值）。真机复测见
-  // docs/testing/nsh-p4-windows-ime-checklist.md §E。
+  // createRichEditor 本身仅 ~0.3-0.6s）。故采样文档取 20k（挂载 ~38s），
+  // 记录数字不设阈值；release 构建预期显著更快（task.md：先测量再定阈值）。
+  // 单测上限 300s：open 超时 180s + 每轮 to-source/to-rich 各 120s 超时，按超时
+  // 算任何一轮都能吃掉上限（只能靠 budgetMs=200_000 轮间截断兜底）；按实测一轮
+  // ≈30-40s 算，open≈38s + 4×~40s≈198s 虽在 300s 内但满载时可能贴着走。
+  // TARGET 从 4 降到 3 给常态留余量（≈38s+3×~40s≈158s），样本只需 ≥MIN_SAMPLES=2。
+  // 真机复测见 docs/testing/nsh-p4-windows-ime-checklist.md §E。
   const doc = bigMarkdown(20_000);
   const tOpen0 = Date.now();
   const app = await openEditor({ noteId: "note-1", note: doc }, { width: 390, height: 844 });
@@ -761,7 +764,7 @@ test("editor: 2 万字 WYSIWYG 打开 + 源码⇄WYSIWYG 切换性能（墙钟�
   const toRichSamples: number[] = [];
   const budgetMs = 200_000; // 单测 300s 上限内留余量给装载/收尾。
   const started = Date.now();
-  const TARGET = 4;
+  const TARGET = 3;
   const MIN_SAMPLES = 2;
   for (let i = 0; i < TARGET; i += 1) {
     const t0 = Date.now();
