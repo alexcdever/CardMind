@@ -1118,3 +1118,48 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+## 25. P4-3a：编辑态换 `RichEditor`（WYSIWYG 默认 + 源码模式可切，2026-11-06，worktree `p4-3a-richeditor-base`，基线 `a2e58168`）
+
+### 范围
+
+编辑页默认从 `Editor`（Markdown 源码）换为 nsh 0.4.0 `RichEditor`（WYSIWYG）；顶栏「源码」切到源码模式（原 `Editor`，显示/编辑 Markdown），再点「排版」回 WYSIWYG。保存 = `session.getMarkdown()`（沿用 700ms 防抖 + `persist()` 路径）；加载 = `legacyWikilinksToMarkdown` → canonical → `createRichEditor`。`[[` 候选、`cardmind://` 链接点击跳转、bubble menu 留 P4-3b；`TextView` 预览面板整删（WYSIWYG 即排版视图，预览无意义）。
+
+### 关键改动
+
+| 文件 | 改动 |
+|---|---|
+| `nsh-app/editor_page/rich.ts`（新） | `richSchema`（starterSchema 单例）、`canonicalMarkdown(md)`（serialize∘parseMarkdown 归一）、`createNoteRichSession(md)`（starterKit+markdown+link{protocols:["cardmind"],openOnClick:false,enableClickSelection:true}）、`richEditorStyles(metrics)`（theme 令牌映射 RichEditorStyles） |
+| `nsh-app/editor_page/controller.ts` | `preview` 信号→`sourceMode`（默认 WYSIWYG）；`ensureRichSession()`/`detachRich()`/`richEpoch`；`currentContent()`（rich=session.getMarkdown，source=text）；`persist`/`readLatestText`/`flushOnUnmount` 基线统一 canonical；等值早退复位 saveState；`handleRichUpdate`（update→dirty+防抖）；`handleRichSelection`（selectionUpdate→标签命中，仅选中文本路径） |
+| `nsh-app/editor_page/constants.ts` | COPY 改 `sourceLabel/richLabel/sourceMode/richMode/closeCandidates`；删 `PREVIEW_STYLES`/`PREVIEW_DEBOUNCE_MS`/`SIDE_BY_SIDE_WIDTH` |
+| `nsh-app/editor_page/types.ts` | `onEditorRef` 收窄为源码 Editor；新增 `onRichSession`（测试读全文/注入的会话接缝）；`onNavigateNote` 保留（P4-3b 链接按下用） |
+| `nsh-app/editor_page.tsx` | `renderPreview`（TextView）→`renderRich`（RichEditor）；`preview-toggle`/`preview-pane`→`source-toggle`；主体 thunk `sourceMode()?renderSource():renderRich()`；并排布局删 |
+| `nsh-app/EditorHarness.tsx` | 活实例统一记 `test.editorMountCount`；探针键扩为 f6（dump，kind-aware：rich=getMarkdown/source=Editor.value）/f7（注入 append：rich=insertContent@选区/source=edit@末尾）/f8（rich=selectAll）；保留 mod+shift+e/l 双键位 |
+| `nsh-app/editor_page.test.tsx` | 30→31 条：默认 WYSIWYG 全部经 label:富文本编辑器 + f6/f7/f8；候选/标签命中/源码撤销/关闭候选改走源码模式；删 3 条预览专属测试（preview 渲染/link 跳转/并排）→等价为「源码切回一致」「桌面 1280 默认 WYSIWYG」；新增源码撤销一条；perf 改 20k 测 open+切换 |
+
+### 0.4.0 RichEditor 实测结论（写入后续轮次的 API 依据）
+
+- `session.getMarkdown()` ≡ `schema.serialize(doc,"markdown")`，不经 doc JSON，更便宜；19k 字 getMarkdown=22ms（逐键序列化不可行 → update→dirty→防抖→保存时序列化）。
+- 往返保真：块级（标题/列表/引用/代码块/分隔线）+ 行内（粗斜体/行内码/~~删~~/链接含 cardmind://）全保真；归一是**结构等价但会改写源码模式里的记号**：段落间多空行→一个空行、Setext 标题→ATX `#`、`__粗__`→`**粗**`、`_斜_`→`*斜*`、行尾双空格硬换行→段内 `\n`，另 `getMarkdown` 可能多尾随 `\n`；段内 `\n`（同段两行）原样。判据 = canonical 形式逐字节（见 `canonicalMarkdown`）。
+- headless `nsh test`：`<RichEditor>` **必须有非零尺寸 style**（`flex:1`）才挂载；`id:`/`label:` 可选；`app.texts()` 出渲染后文本块（无 Markdown 标记）；`app.type(label,…)` 真打字；**`app.press` 不可用**（非 pressable）；**mod+shift+* 被编辑器吞**（f* 键可）；`mod+a` headless 不生效（用 `session.run({command:"selectAll"})`）；`session.on("update")` 监听器绑调用方作用域（render thunk 重跑会销毁 → 监听挂 effect）。
+- **性能风险（dev 构建实测）**：RichEditor 首挂载/首布局随文档规模**超线性**：10k≈12s / 20k≈38s / 30k≈66-80s / 50k>180s（mount 一旦就绪仅 ~20ms；createRichEditor ~0.3-0.6s）。疑似每文本节点一个原生视图的首布局成本。release 构建未测；**>20k 字笔记打开有可见延迟**，建议 P4-3b 或专项向上游求证/优化。
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248 tests） |
+| `nsh test --filter editor` | **31/31**（4m07s；含 perf） |
+| `nsh test --filter "note: 移动布局"` | **1/1** |
+| `cd rust-backend && cargo test` | exit 0，0 failed（worktree 本地 target；本轮零 Rust 改动） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### 修复轮（`fa99c0ca` + `7099682f`，2026-11-06）
+
+- **BLOCKER 修复**：删 4 个探针文件（`RichProbeHarness.tsx`、`rich_probe.test.tsx`、`RichProbe3Harness.tsx`、`rich_probe3.test.tsx`）——`rich_probe.test.tsx` 在 `nsh test`（无 filter 默认跑法）下稳定失败（`<RichEditor>` 没给 `style={{flex:1}}`，且 50k 文档挂视图是「首挂载 >180s」路径）；契约结论已固化进本节与 `nsh-automation-anchors.md`。
+- **修复轮 `nsh test`（无 filter 全量）**：**33 tests / 32 passed / 1 failed**（1m40s）——唯一失败是基线既有 Windows-only `coexist_notes_probe`（macOS 无 `APPDATA`，见 §5.7/§P4 已知环境限制；本轮引入失败 = 0）。
+- **顺手修**：`onNavigateNote` 三处 JSDoc 改为「保留接缝、零生产读取、P4-3b 接」；`noteIdFromLinkUrl` 注释标注 P4-3b 复用；`rich.ts` 头注/`canonicalMarkdown` JSDoc 与本节第 1143 行补「结构等价但会改写源码模式里的记号」；`editor_page.test.tsx` perf 注释的「5 万字」改「2 万字」、`TARGET` 4→3 并注释最坏路径对 300s 单测上限的关系。
+- 回归复测（修复轮）：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 248/247/1skip/0fail；`--filter editor` 31/31；`--filter "note: 移动布局"` 1/1；`cargo test` 0 failed；`nsh package . --target macos` 出包；`git_gate full --dry-run` exit 0；`dart format` 0 changed。

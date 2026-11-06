@@ -3,7 +3,7 @@
 // `../editor_page` 同式；Entry→desktop_pane→Entry 为循环 import，依赖的是
 // `Each` 渲染时才解引用的 function 提升绑定，安全）。
 import { View, type JSX } from "nsh";
-import type { EditorRef } from "nsh/base";
+import type { EditorRef, RichEditorSession } from "nsh/base";
 import { CardMindEmptyState } from "../components";
 import { colors } from "../theme";
 import { EditorPage } from "../editor_page";
@@ -22,10 +22,13 @@ export function DesktopEditorPane(props: {
   noteId: () => string | undefined;
   /** 测试接缝：不传则用真后端。 */
   repository?: EditorRepository;
-  /** 测试接缝：把内嵌 Editor 的 ref 交给调用方。 */
+  /** 测试接缝：把内嵌源码 Editor 的 ref 交给调用方。 */
   onEditorRef?: (ref: EditorRef) => void;
-  /** 预览里按下笔记链接的跳转：桌面三栏应切换选中（由列表侧注入 openNote），
-   *  不传则退回 EditorPage 默认的 `openEditor` push 路由。 */
+  /** 测试接缝：把内嵌 WYSIWYG 会话交给调用方（`nsh test` 读全文断言）。 */
+  onRichSession?: (session: RichEditorSession) => void;
+  /** 保留接缝：P4-3b 接 WYSIWYG 里点击笔记链接的跳转。桌面三栏语义是切选中
+   *  （由列表侧注入 openNote）；当前零生产读取（预览面板已删、RichEditor
+   *  `openOnClick:false`），透传先留着等 P4-3b 接上。 */
   onNavigateNote?: (noteId: string) => void;
 }): JSX.Element {
   return (
@@ -49,6 +52,7 @@ export function DesktopEditorPane(props: {
                 embedded
                 repository={props.repository}
                 onEditorRef={props.onEditorRef}
+                onRichSession={props.onRichSession}
                 onNavigateNote={props.onNavigateNote}
               />
             )}

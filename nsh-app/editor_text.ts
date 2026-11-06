@@ -235,7 +235,8 @@ function protectCodeSegments(text: string, convertPlain: (line: string) => strin
     .join('\n');
 }
 
-/** `cardmind://note/<id>` URL → 笔记 id（percent-decode；非法/非本 scheme → null）。 */
+/** `cardmind://note/<id>` URL → 笔记 id（percent-decode；非法/非本 scheme → null）。
+ *  当前无生产调用（预览面板删除后只剩自测）：留给 P4-3b 接 WYSIWYG 链接点击时复用。 */
 export function noteIdFromLinkUrl(url: unknown): string | null {
   if (typeof url !== 'string') return null;
   const body = url.startsWith(NOTE_LINK_URL_PREFIX)

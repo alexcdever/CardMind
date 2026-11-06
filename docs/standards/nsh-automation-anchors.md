@@ -18,17 +18,17 @@
 - `accessibilityLabel`：选择器写作 `label:<label>`，同时是用户可读的无障碍文本。
 - `role` + `accessibilityState`：声明控件是什么、当前处于什么状态，供无障碍树与自动化断言使用。
 
-推荐形态（与 `nsh-app/editor_page.tsx` 的预览切换一致）：
+推荐形态（与 `nsh-app/editor_page.tsx` 的源码/排版切换一致）：
 
 ```tsx
 <View
-  testID="preview-toggle"
+  testID="source-toggle"
   role="button"
-  accessibilityLabel={preview() ? COPY.backToEdit : COPY.preview}
-  accessibilityState={{ selected: preview() }}
-  onPress={togglePreview}
+  accessibilityLabel={sourceMode() ? COPY.richMode : COPY.sourceMode}
+  accessibilityState={{ selected: sourceMode() }}
+  onPress={toggleSourceMode}
 >
-  <Text>{preview() ? COPY.backToEdit : COPY.preview}</Text>
+  <Text>{sourceMode() ? COPY.richMode : COPY.sourceMode}</Text>
 </View>
 ```
 
@@ -47,7 +47,7 @@
 
 ## 命名规则
 
-- `testID` 使用 kebab-case 字符串，例如 `preview-toggle`、`save-state`、`note-list`。
+- `testID` 使用 kebab-case 字符串，例如 `source-toggle`、`save-state`、`note-list`、`rich-editor`。
 - 动态生成的 id 用模板串表达，例如 `note-${note().id}`、`link-${candidate.id}`、`tag-${index}`。
 - 同一控件的 `testID` 与 `accessibilityLabel` 语义可以不同，但各自必须稳定：`testID` 面向自动化、不随文案改；`accessibilityLabel` 面向用户、随文案改。
 - `accessibilityLabel` 必须保持用户可读，不得直接替换成 machine id。
@@ -104,5 +104,9 @@
   `id:` / `label:` / `role:` 两者都可用；真窗口另有平台原生无障碍树参与。
 - headless 下 `TextView` 内部的 `testID` 不可选（见 `nsh-app/editor_page.test.tsx` 的注释），
   需要按内容定位时用 `label:` 或 `text:`。
+- `RichEditor`（0.4.0）headless 要点：**必须给非零尺寸 style（如 `flex:1`）才挂载**；
+  `id:`/`label:`/`text:` 与 `app.type` 可用，`app.texts()` 出渲染后文本块；
+  `app.press`/`mod+shift+*`/`mod+a` 不可用（编辑器吞键）——测试探针用 f 键 +
+  `session.run({command:"selectAll"})` / `session.insertContent`。
 - IME、选区、真窗口渲染只能靠 `nsh test --target <platform>` 或人工目视验证；headless 通过不构成
   真机验收。

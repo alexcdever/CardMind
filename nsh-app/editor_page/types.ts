@@ -1,5 +1,5 @@
 // 编辑页类型（自 editor_page.tsx 纯结构拆出，声明逐字保留）。
-import type { EditorRef } from "nsh/base";
+import type { EditorRef, RichEditorSession } from "nsh/base";
 
 /** `searchByTag` / `autoCompleteLinks` 的行（只取编辑器需要的字段，兼容 NoteDto）。 */
 export interface EditorNoteRow {
@@ -29,9 +29,15 @@ export interface EditorPageProps {
   embedded?: boolean;
   /** 测试接缝：不传则用真后端（`backendEditorRepository`）。 */
   repository?: EditorRepository;
-  /** 测试接缝：Editor 挂载后把 ref 交给调用方（`nsh test` 读全文做逐字节断言）。 */
+  /** 测试接缝：源码模式 `Editor` 挂载后把 ref 交给调用方（`nsh test` 读全文
+   *  做逐字节断言）；WYSIWYG 模式不发 ref，用 `onRichSession`。 */
   onEditorRef?: (ref: EditorRef) => void;
-  /** 预览里按下 `cardmind://note/<id>` 链接的跳转入口：默认 `openEditor`（push
-   *  编辑路由）；桌面三栏内嵌时由列表侧改为切换选中（DesktopEditorPane 注入）。 */
+  /** 测试接缝：WYSIWYG 会话建立后把 `RichEditorSession` 交给调用方（`nsh test`
+   *  经 `getMarkdown()`/`insertContent` 读全文/注入编辑做断言）；模式切换时重建
+   *  会话会再次回调（拿到新实例）。 */
+  onRichSession?: (session: RichEditorSession) => void;
+  /** 保留接缝：P4-3b 接 WYSIWYG 里点击 `cardmind://note/<id>` 链接的跳转。
+   *  当前零生产读取——预览面板已删、RichEditor `openOnClick:false`，谁都不调用；
+   *  桌面三栏内嵌时仍由列表侧注入 `openNote`（切选中），先留着等 P4-3b 接上。 */
   onNavigateNote?: (noteId: string) => void;
 }

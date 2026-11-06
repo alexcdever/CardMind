@@ -1,34 +1,38 @@
-// 编辑页（P2）：NSH 0.3.0 原生 `Editor` 做 Markdown 源编辑，替换 WebView + Tiptap。
+// 编辑页（P4-3a）：编辑态换成 NSH 0.4.0 `RichEditor`（WYSIWYG）；原 `Editor`
+// （Markdown 源码）保留为可切换的「源码模式」。
 //
-// 数据流（06 §2.3）：
-//   noteGet → markdown 原样 → Editor(defaultValue) → onChange(value) → 700ms 去抖
-//   → generateNoteId（新笔记一次）→ noteCreate → noteUpdateMetadata → syncNotesToStore
-// 取消的旧机制：WebView/postMessage/8s 桥、soft↔hard 换行与方括号转义归一化。
+// 数据流（沿用 P2 骨架，序列化口径换成 getMarkdown）：
+//   noteGet → legacyWikilinksToMarkdown(normalizeNewlines(markdown))
+//   → WYSIWYG：createNoteRichSession(md) → session.on("update") → 700ms 去抖
+//   → 保存时 session.getMarkdown() → generateNoteId（新笔记一次）→ noteCreate
+//   → noteUpdateMetadata → syncNotesToStore
+//   源码模式：Editor(defaultValue=最新 md) → onChange(value) → 同一去抖路径。
+// 取消的旧机制：WebView/postMessage/8s 桥、soft↔hard 换行与方括号转义归一化；
+// P4-3a 起 `TextView` 预览面板移除（WYSIWYG 即排版视图，预览无意义）。
 //
 // 状态机（06 §2.2）：loading / ready / load-error / saving / saved / dirty / save-error。
-// `Editor` 只在 ready 后挂载（修 01 R1：加载失败不得用空文档覆盖原内容）。
+// 编辑器只在 ready 后挂载（修 01 R1：加载失败不得用空文档覆盖原内容）。
 //
 // 结构（P2-2b 纯结构拆分）：本文件仅保留页面根 `EditorPage`（控制器解构 +
-// renderPreview/renderEditor/renderContent + 返回 JSX）与公共 API 的 re-export；
-// 类型/常量/repository/加载态/控制器/桌面栏分别落在 `./editor_page/` 子模块。
-// render 段 JSX 与交互逐字不变，控制器内声明按原顺序整体搬移（token 级一致；
-// 唯一改写：`editor = ref` → `setEditor(ref)`，let 绑定无法经解构写回）。
+// renderSource/renderRich/renderContent + 返回 JSX）与公共 API 的 re-export；
+// 类型/常量/repository/加载态/控制器/桌面栏/WYSIWYG 接缝分别落在
+// `./editor_page/` 子模块。
 import { Text, View, type JSX } from "nsh";
-import { Editor, NavPage, TextView, type EditorRef } from "nsh/base";
+import { Editor, NavPage, RichEditor, type EditorRef } from "nsh/base";
 import { CardMindIconButton, CardMindPrimaryButton, CardMindTag } from "./components";
-import { goBack, openEditor, screenChrome } from "./navigation";
-import { noteIdFromLinkUrl } from "./editor_text";
+import { goBack, screenChrome } from "./navigation";
 import { colors, layout, radii, spacing, typography } from "./theme";
 import { createEditorController } from "./editor_page/controller";
 import { EditorDesktopHeader, EditorLoadError, EditorLoading } from "./editor_page/loading";
-import { COPY, PREVIEW_STYLES, SAVE_STATE } from "./editor_page/constants";
+import { COPY, SAVE_STATE } from "./editor_page/constants";
+import { richEditorStyles } from "./editor_page/rich";
 import type { EditorPageProps } from "./editor_page/types";
 
 export type { EditorNoteRow, EditorPageProps, EditorRepository } from "./editor_page/types";
 export { backendEditorRepository } from "./editor_page/repository";
 export { DesktopEditorPane } from "./editor_page/desktop_pane";
 
-/** 编辑区（`Editor` + 预览切换 + 候选行 + 标签行 + 保存态）。
+/** 编辑区（WYSIWYG `RichEditor` + 源码切换 + 候选行 + 标签行 + 保存态）。
  *  `embedded`：桌面第三栏内嵌时不套 NavPage/返回键。 */
 export function EditorPage(props: EditorPageProps): JSX.Element {
   const {
@@ -42,15 +46,14 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     candidates,
     saveState,
     saveError,
-    preview,
-    previewText,
+    sourceMode,
     metrics,
-    sideBySide,
     setEditor,
+    ensureRichSession,
     retrySave,
     closeEditor,
     setCandidates,
-    togglePreview,
+    toggleSourceMode,
     handleChange,
     handleSelection,
     handleBlur,
@@ -59,37 +62,9 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     saveStateColor,
   } = createEditorController(props);
 
-  /** 预览面板（只读 TextView）。笔记链接是标准 `[alias](cardmind://note/id)`：
-   *  内建 link 渲染（PREVIEW_STYLES.link 近 chip 外观）；按下经 `onLinkPress`
-   *  解析 id 后走 `props.onNavigateNote`（默认 openEditor；桌面内嵌换选中）。 */
-  function renderPreview(): JSX.Element {
-    const navigate = props.onNavigateNote ?? openEditor;
-    return (
-      <View
-        testID="preview-pane"
-        style={{
-          flex: 1,
-          backgroundColor: colors.paper,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.sm,
-        }}
-      >
-        <TextView
-          testID="preview"
-          markdown={previewText()}
-          styles={PREVIEW_STYLES}
-          selectable
-          onLinkPress={({ url }) => {
-            const noteId = noteIdFromLinkUrl(url);
-            if (noteId !== null) navigate(noteId);
-          }}
-        />
-      </View>
-    );
-  }
-
-  /** 编辑面板（`Editor`）。单独拆出便于并排/切换两种布局复用。 */
-  function renderEditor(): JSX.Element {
+  /** 源码面板（原 `Editor`，显示 Markdown 原文）。`[[` 候选、标签高亮、
+   *  撤销栈都按原 Editor 语义工作。 */
+  function renderSource(): JSX.Element {
     return (
       <Editor
         ref={(ref: EditorRef) => {
@@ -108,7 +83,7 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
         folding={false}
         indentGuides={false}
         activeLine
-        accessibilityLabel={COPY.editorLabel}
+        accessibilityLabel={COPY.sourceLabel}
         fontSize={metrics().fontSize}
         lineHeight={metrics().lineHeight}
         style={{
@@ -122,6 +97,31 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
         }
         onBlur={handleBlur}
         onFocus={handleFocus}
+      />
+    );
+  }
+
+  /** WYSIWYG 面板（`RichEditor`）。会话由 `ensureRichSession()` 惰性建立并
+   *  在一次 WYSIWYG 存续期内复用；切走源码再切回时整体卸载/重挂（`editor`
+   *  prop 只在视图创建时取一次），会话随之以最新 Markdown 重建——撤销栈随
+   *  模式切换重置（沿用旧预览切换口径）。`style={flex:1}` 是 headless 挂载的
+   *  必要条件（0.4.0 实测）。 */
+  function renderRich(): JSX.Element {
+    return (
+      <RichEditor
+        testID="rich-editor"
+        editor={ensureRichSession()}
+        placeholder={COPY.placeholder}
+        autoFocus
+        accessibilityLabel={COPY.richLabel}
+        styles={richEditorStyles(metrics())}
+        style={{
+          flex: 1,
+          backgroundColor: colors.paper,
+          borderRadius: radii.md,
+        }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       />
     );
   }
@@ -169,13 +169,13 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                 {saveState()}
               </Text>
               <View style={{ flex: 1 }} />
-              {/* 预览切换：文字 + 状态（颜色不作唯一指示）；触摸目标 ≥48dp。 */}
+              {/* 源码/排版切换：文字 + 状态（颜色不作唯一指示）；触摸目标 ≥48dp。 */}
               <View
-                testID="preview-toggle"
+                testID="source-toggle"
                 role="button"
-                accessibilityLabel={preview() ? COPY.backToEdit : COPY.preview}
-                accessibilityState={{ selected: preview() }}
-                onPress={togglePreview}
+                accessibilityLabel={sourceMode() ? COPY.richMode : COPY.sourceMode}
+                accessibilityState={{ selected: sourceMode() }}
+                onPress={toggleSourceMode}
                 style={{
                   minHeight: layout.mobileTouchTarget,
                   minWidth: layout.mobileTouchTarget,
@@ -184,18 +184,18 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                   paddingHorizontal: spacing.md,
                   borderRadius: radii.md,
                   borderWidth: 1,
-                  borderColor: preview() ? colors.accent : colors.border,
-                  backgroundColor: preview() ? colors.surfaceLow : "transparent",
+                  borderColor: sourceMode() ? colors.accent : colors.border,
+                  backgroundColor: sourceMode() ? colors.surfaceLow : "transparent",
                 }}
               >
                 <Text
                   style={{
-                    color: preview() ? colors.accent : colors.mutedInk,
+                    color: sourceMode() ? colors.accent : colors.mutedInk,
                     fontSize: typography.labelLarge.fontSize,
                     fontWeight: "600",
                   }}
                 >
-                  {preview() ? COPY.backToEdit : COPY.preview}
+                  {sourceMode() ? COPY.richMode : COPY.sourceMode}
                 </Text>
               </View>
             </View>
@@ -288,21 +288,10 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                 />
               </View>
             </If>
-            {/* 编辑/预览主体（响应式 thunk）：单栏预览时 Editor 卸载、以最新文本
-                重挂载（切回源码字节不变；撤销栈随预览切换重置，P3 允许）；
-                ≥1280 桌面并排时 Editor 保持挂载、TextView 同步显示。 */}
-            {() => {
-              if (!preview()) return renderEditor();
-              if (sideBySide()) {
-                return (
-                  <View style={{ flex: 1, flexDirection: "row", gap: spacing.sm }}>
-                    <View style={{ flex: 1 }}>{renderEditor()}</View>
-                    {renderPreview()}
-                  </View>
-                );
-              }
-              return renderPreview();
-            }}
+            {/* 编辑主体（响应式 thunk）：默认 WYSIWYG；源码模式时 RichEditor
+                卸载、Editor 以最新 Markdown 重挂载（两态撤销栈各自独立，随
+                切换重置——沿用旧「预览切回源码字节不变」的口径）。 */}
+            {() => (sourceMode() ? renderSource() : renderRich())}
           </View>
         ) : null}
       </View>

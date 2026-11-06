@@ -6,7 +6,7 @@
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | NSH + TSX（nsh-app） | nsh 0.4.0（`nsh-app/nsh.json`；原生 `Editor` 做 Markdown 源编辑，无 WebView/Tiptap） |
+| 前端 | NSH + TSX（nsh-app） | nsh 0.4.0（`nsh-app/nsh.json`；`RichEditor` 做 WYSIWYG 默认编辑 + `Editor` 做 Markdown 源码模式，无 WebView/Tiptap） |
 | 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
 | CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
 | 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
@@ -40,9 +40,11 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
                   note_row/tag_filter_bar/list_body/desktop/mobile
   editor_page/    编辑页子模块（editor_page.tsx 为入口：EditorPage（控制器解构 + render 段）+
                   re-export 公共 API）：
-                  types(EditorNoteRow/EditorRepository/EditorPageProps)/constants(SAVE_STATE·COPY·样式)/
+                  types(EditorNoteRow/EditorRepository/EditorPageProps)/constants(SAVE_STATE·COPY)/
                   repository(backendEditorRepository/isNewNoteId)/loading(加载·错误态·桌面顶栏)/
-                  controller(createEditorController：signals/effects/保存·候选·预览处理)/desktop_pane(DesktopEditorPane)
+                  controller(createEditorController：signals/effects/保存·候选·模式切换处理)/
+                  rich(WYSIWYG 接缝：richSchema·canonicalMarkdown·createNoteRichSession·richEditorStyles)/
+                  desktop_pane(DesktopEditorPane)
   devices_page/   设备页子模块（devices_page.tsx 为入口：DevicesPage（state 解构 + render 段）+
                   re-export 公共 API）：
                   types(5 个 DTO/DevicesSource)/constants(配对码 TTL·轮询·倒计时·在线窗口·刷新间隔·6 位码·图标尺寸)/
@@ -147,7 +149,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 | NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite（NSH 原生模块边界，无 FRB） |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
-| 编辑器迁移 | ✅ 已用 NSH 0.3.0 原生 `Editor` + `TextView` 替换 WebView + Tiptap；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`、`docs/handover-nsh-editor-2026-11-03.md` |
+| 编辑器迁移 | ✅ WebView+Tiptap 已替换：0.4.0 `RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`（§25）、`docs/handover-nsh-editor-2026-11-03.md` |
 | 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
 
 ## 文档地图

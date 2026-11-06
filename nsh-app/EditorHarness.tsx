@@ -5,7 +5,7 @@
 // `test.scenario` 注入（JSON），假的仓库把调用记录写回 storage 的 `test.calls`、
 // `test.saved`、`test.savedId`、`test.tags`，测试用 `app.storage()` 断言。
 import { effect, keymap, mount, signal, Storage, Text, View, type JSX } from "nsh";
-import { NavPage, NavStack, type EditorRef } from "nsh/base";
+import { NavPage, NavStack, type EditorRef, type RichEditorSession } from "nsh/base";
 import {
   DesktopEditorPane,
   EditorScreen,
@@ -39,42 +39,68 @@ interface Scenario {
 
 const scenario = signal<Scenario | null>(null);
 let repository: EditorRepository | null = null;
-/** 最新挂载的 `Editor` ref（测试用：读全文 / 在末尾插入，做逐字节断言）。 */
+/** 源码模式最新挂载的 `Editor` ref（测试用：读全文 / 在末尾插入，做逐字节断言）。 */
 let liveEditor: EditorRef | null = null;
-/** 上一个经 `onEditorRef` 上报的 ref 实例（判别「新建 vs 复用」）。 */
-let lastEditorRef: EditorRef | null = null;
-/** 挂载次数（新 ref 实例出现即 +1）。 */
+/** WYSIWYG 模式当前会话（测试用：`getMarkdown()` 读全文 / `insertContent` 注入）。 */
+let liveSession: RichEditorSession | null = null;
+/** 当前活编辑器种类：`onEditorRef`→source，`onRichSession`→rich。 */
+let liveKind: "source" | "rich" | null = null;
+/** 上一个经 `onEditorRef`/`onRichSession` 上报的实例（判别「新建 vs 复用」）。 */
+let lastEditorInstance: EditorRef | RichEditorSession | null = null;
+/** 编辑器实例挂载次数（新 Editor ref 或新 RichEditorSession 出现即 +1）。 */
 let editorMountCount = 0;
-/** `mod+shift+l` 要在末尾插入的文本（场景里的 `append`）。 */
+/** `f7`/`mod+shift+l` 要注入的文本（场景里的 `append`）。 */
 let appendText: string | null = null;
 
-function recordEditorRef(ref: EditorRef): void {
-  liveEditor = ref;
-  if (ref !== lastEditorRef) {
-    lastEditorRef = ref;
+function bumpMountCount(instance: EditorRef | RichEditorSession): void {
+  if (instance !== lastEditorInstance) {
+    lastEditorInstance = instance;
     editorMountCount += 1;
-    // ref 回调每收到一个新实例就 +1：切换笔记重建 Editor 时 ref 是新建对象；
-    // 若实现退化复用同一 Editor（key 失效/setValue 重载），ref 不再上报新实例，计数不涨。
+    // 新实例即 +1：切换笔记重建编辑器时 ref/session 是新建对象；
+    // 若实现退化复用同一实例（key 失效/setValue 重载），计数不涨。
     void Storage.setItem("test.editorMountCount", String(editorMountCount));
   }
 }
 
-/** 把 `Editor.value()` 写进 storage 的 `test.editorValue`（测试读全文用）。
+function recordEditorRef(ref: EditorRef): void {
+  liveEditor = ref;
+  liveKind = "source";
+  bumpMountCount(ref);
+}
+
+function recordRichSession(session: RichEditorSession): void {
+  liveSession = session;
+  liveKind = "rich";
+  bumpMountCount(session);
+}
+
+/** 把当前编辑器的全文写进 storage 的 `test.editorValue`（测试读全文用）：
+ *  源码模式 `Editor.value()`；WYSIWYG `session.getMarkdown()`。
  *  同时自增 `test.editorDumpSeq`，让测试能区分「这次读的」与「上一次读的」。 */
 async function dumpEditorValue(): Promise<void> {
-  if (liveEditor === null) return;
-  const value = await liveEditor.value();
+  let value: string | null = null;
+  if (liveKind === "rich" && liveSession !== null) {
+    value = liveSession.getMarkdown();
+  } else if (liveEditor !== null) {
+    value = await liveEditor.value();
+  }
+  if (value === null) return;
   const seq = Number((await Storage.getItem("test.editorDumpSeq")) ?? "0") + 1;
   await Storage.setItem("test.editorValue", value);
   await Storage.setItem("test.editorDumpSeq", String(seq));
 }
 
-/** 在文本末尾插入 `text`（走 Editor 的公开 edit API，等价用户在该处输入）。 */
+/** 注入 `text`（等价用户输入）：源码模式在文本末尾 `Editor.edit`；
+ *  WYSIWYG 在当前选区 `session.insertContent`（RichEditor 的选区是文档位，
+ *  测试断言用 `includes` 而非「末尾逐字节」）。 */
 async function appendAtEnd(text: string): Promise<void> {
-  if (liveEditor === null) return;
-  const value = await liveEditor.value();
-  const end = await liveEditor.offsetToPosition(value.length);
-  liveEditor.edit([{ range: { start: end, end }, text }]);
+  if (liveKind === "rich" && liveSession !== null) {
+    liveSession.insertContent(text, "markdown");
+  } else if (liveEditor !== null) {
+    const value = await liveEditor.value();
+    const end = await liveEditor.offsetToPosition(value.length);
+    liveEditor.edit([{ range: { start: end, end }, text }]);
+  }
   await dumpEditorValue();
 }
 
@@ -218,11 +244,21 @@ function Harness(): JSX.Element {
     })();
   });
 
-  // 测试探针（只经公开 EditorRef API，不碰私有状态）：
-  //   mod+shift+e → 读 `Editor.value()` 全文写入 `test.editorValue`
-  //   mod+shift+l → 在文本末尾插入 `test.append` 的内容
+  // 测试探针（只经公开 API，不碰私有状态）：
+  //   f6 / mod+shift+e → 全文 dump 写入 `test.editorValue`（kind-aware）
+  //   f7 / mod+shift+l → 注入 `test.append` 的内容（rich=选区插入，source=末尾）
+  //   f8 → 全选（rich=session.run selectAll；source=Editor 内建 mod+a 更准，
+  //        但 f8 统一接口；RichEditor headless 下 mod+a 不生效——0.4.0 实测）
+  //   f* 双键位：RichEditor 聚焦时吞 mod+shift+*（0.4.0 实测），f 键照常到达。
   effect(() => {
     const unbind = keymap.bind({
+      f6: () => void dumpEditorValue(),
+      f7: () => void appendAtEnd(appendText ?? ""),
+      f8: () => {
+        if (liveKind === "rich" && liveSession !== null) {
+          liveSession.run({ command: "selectAll" });
+        }
+      },
       "mod+shift+e": () => void dumpEditorValue(),
       "mod+shift+l": () => void appendAtEnd(appendText ?? ""),
     });
@@ -255,6 +291,7 @@ function Harness(): JSX.Element {
             noteId={selected}
             repository={repository ?? undefined}
             onEditorRef={recordEditorRef}
+            onRichSession={recordRichSession}
             onNavigateNote={(id: string) => selected.set(id)}
           />
         </View>
@@ -272,6 +309,7 @@ function Harness(): JSX.Element {
                 noteId={route.noteId ?? ""}
                 repository={repository ?? undefined}
                 onEditorRef={recordEditorRef}
+                onRichSession={recordRichSession}
               />
             ) : (
               <NavPage title="笔记" testID="notes-page">

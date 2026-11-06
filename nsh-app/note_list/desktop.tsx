@@ -152,7 +152,8 @@ export function DesktopLayout(props: { status?: JSX.Element }): JSX.Element {
       <DesktopListPane />
       <View style={{ flex: 1, flexDirection: "column" }}>
         {/* 第三栏：真实编辑区（后端注入走默认 repo）；未选中显示空态。
-            预览里点笔记链接 → openNote 切选中（P4-2 cardmind:// 跳转）。 */}
+            onNavigateNote 保留接缝：P4-3b 接 WYSIWYG 点 cardmind:// 链接→切选中，
+            当前零生产读取（预览面板已删），注入 openNote 先留着。 */}
         <DesktopEditorPane noteId={selectedNoteId} onNavigateNote={openNote} />
         <If when={props.status !== undefined}>{props.status}</If>
       </View>
