@@ -552,7 +552,9 @@ export function createEditorController(props: EditorPageProps) {
   }
 
   /** 光标/选区落在 `cardmind://note/<id>` 链接上时记下目标 id（驱动气泡菜单）。
-   *  `link({enableClickSelection})` 让按下链接选中整段，因此点击也走这里。 */
+   *  `link({enableClickSelection})` 让按下链接选中整段，因此点击也走这里。
+   *  指向当前笔记的链接不算「可跳转目标」：菜单唯一按钮是「打开笔记」，点它
+   *  只会被 `openActiveNoteLink()` 的同款防御挡回——与其显示死按钮，不如不显示。 */
   function syncActiveNoteLink(): void {
     const session = richSession;
     if (session === null || sourceMode()) return;
@@ -563,6 +565,7 @@ export function createEditorController(props: EditorPageProps) {
         id = noteIdFromLinkUrl((attrs as { href?: unknown }).href);
       }
     }
+    if (id === currentId) id = null;
     if (id !== activeNoteLink()) activeNoteLink.set(id);
   }
 
