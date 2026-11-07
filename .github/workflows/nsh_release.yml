@@ -306,11 +306,12 @@ jobs:
             ${{ runner.os }}-${{ github.job }}-nshapp-target-
 
       - name: Package windows
-        # 产物嵌套：.nsh/out/cardmind/cardmind.zip（Windows 没有 Inno Setup 安装器）。
+        # 产物在顶层：.nsh/out/cardmind.zip（旁边的 cardmind\ 目录装 cardmind.exe）。
+        # Windows 没有 Inno Setup 安装器，所以分发 zip 而不是 Setup.exe。
         run: nsh package . --target windows
 
       - name: Stage release asset
-        run: Copy-Item .nsh/out/cardmind/cardmind.zip "$env:GITHUB_WORKSPACE/CardMind-Windows-x64.zip"
+        run: Copy-Item .nsh/out/cardmind.zip "$env:GITHUB_WORKSPACE/CardMind-Windows-x64.zip"
 
       - name: Upload windows artifact
         uses: actions/upload-artifact@v4

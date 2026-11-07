@@ -163,7 +163,7 @@ jobs:
             Linux-${{ github.job }}-nshapp-target-
 
       - name: Package linux
-        # 产物嵌套在 <name>/ 子目录：nsh-app/.nsh/out/cardmind/...（与 windows 同构）。
+        # 产物在顶层：nsh-app/.nsh/out/cardmind.tar.gz（旁边 cardmind/ 目录是解开的同一份）。
         run: nsh package . --target linux
 
       - name: List package output
@@ -173,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cardmind-linux
-          # ** 递归匹配嵌套的 <name>/ 子目录；if-no-files-found 防路径写错时静默产空 artifact。
+          # ** 递归只为容错（当前产物在顶层）；if-no-files-found 防路径写错时静默产空 artifact。
           path: nsh-app/.nsh/out/**/*.tar.gz
           if-no-files-found: error
           retention-days: 14
@@ -278,7 +278,7 @@ jobs:
             ${{ runner.os }}-nshapp-target-
 
       - name: Package windows
-        # 产物嵌套在 <name>/ 子目录（实测）：nsh-app/.nsh/out/cardmind/cardmind.exe + cardmind.zip。
+        # 产物在顶层：nsh-app/.nsh/out/cardmind.zip（旁边 cardmind/ 目录装 cardmind.exe）。
         run: nsh package . --target windows
         shell: pwsh
 
@@ -290,7 +290,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cardmind-windows
-          # ** 递归匹配嵌套的 cardmind/cardmind.zip；if-no-files-found 防路径写错时静默产空 artifact。
+          # ** 递归只为容错（当前 zip 在顶层）；if-no-files-found 防路径写错时静默产空 artifact。
           path: nsh-app/.nsh/out/**/*.zip
           if-no-files-found: error
           retention-days: 14

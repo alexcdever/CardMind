@@ -1498,7 +1498,7 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 
 审查后修正：artifact 嵌套路径 + if-no-files-found + cache key 分 job + web 系统依赖。逐项：
 
-1. **BLOCKER——artifact 路径少了 `<name>/` 嵌套层**：lead 实测 `nsh package` 在 Windows 产出 `.nsh/out/cardmind/cardmind.exe` + `cardmind/cardmind.zip`、Linux 同构嵌套在 `.nsh/out/cardmind/`、macOS 为顶层 `.nsh/out/cardmind.app`。修复：windows `path` 改 `nsh-app/.nsh/out/**/*.zip`、linux 改 `nsh-app/.nsh/out/**/*.tar.gz`（`**` 递归匹配 `<name>/` 子目录）；macos 经 `tar -czf` 落在 `.nsh/out/cardmind-macos.tar.gz`（顶层，本就正确）不动；web 整目录上传天然兼容嵌套。**全部 4 个 upload-artifact 加 `if-no-files-found: error`**（v4 默认 warn，路径写错会静默产空 artifact）。
+1. **BLOCKER——artifact 路径少了 `<name>/` 嵌套层**：lead 实测 `nsh package` 的归档产物都在 `.nsh/out/` **顶层**（`cardmind.zip` / `cardmind.tar.gz` / `cardmind.app`），解开的目录同层（`cardmind/`）；当时的审查记录误判为嵌套，`**` 递归写法因此保留（对顶层同样匹配，属容错）。修复：windows `path` 改 `nsh-app/.nsh/out/**/*.zip`、linux 改 `nsh-app/.nsh/out/**/*.tar.gz`（`**` 递归匹配 `<name>/` 子目录）；macos 经 `tar -czf` 落在 `.nsh/out/cardmind-macos.tar.gz`（顶层，本就正确）不动；web 整目录上传天然兼容嵌套。**全部 4 个 upload-artifact 加 `if-no-files-found: error`**（v4 默认 warn，路径写错会静默产空 artifact）。
 2. **package-web 补系统依赖**：`build-essential pkg-config libssl-dev cmake`（与 nsh-quality/package-linux 一致，防 `--target web` 需编 Rust crate）。
 3. **cargo cache key 分 job**：三个 Ubuntu job（nsh-quality/package-linux/package-web）原共享 `Linux-nshapp-target-<hash>`——同 key 只允许保存一次、先到者赢，其余只 restore 旧缓存；改为 `Linux-${{ github.job }}-nshapp-target-<hash>`（key 与 restore-keys 同步），macos/windows key 本就含各自 runner.os 不动。
 4. **`env.NSH_VERSION` 复用**：install.sh/install.ps1 的 URL 与 `NSH_VERSION=` 传参改用 `${{ env.NSH_VERSION }}`/`$env:NSH_VERSION`，不再硬编码 `v0.4.0`（防版本漂移）。
@@ -1603,11 +1603,11 @@ rfd v0.15.4（文件对话框，feature xdg-portal，非 gtk3）
 ### 关键决策与理由
 
 - **web 不做**：§32 已证后端依赖链（iroh/rusqlite/tokio）编不进 wasm，release 通道同样不含 web。
-- **Windows 是 zip 不是 Setup.exe**：`nsh package --target windows` 产物就是 `.nsh/out/cardmind/cardmind.zip`，nsh 不提供 Inno Setup 安装器；`tool/installer/cardmind.iss` 是 Flutter 时代脚本，产物 `CardMind-Setup.exe` 已不存在。`generate_update_manifest.py` 的 `windows-x64` 资产名对应改成 zip。
+- **Windows 是 zip 不是 Setup.exe**：`nsh package --target windows` 产物就是 `.nsh/out/cardmind.zip`（顶层 zip，旁边 `cardmind/` 目录装 `cardmind.exe`），nsh 不提供 Inno Setup 安装器；`tool/installer/cardmind.iss` 是 Flutter 时代脚本，产物 `CardMind-Setup.exe` 已不存在。`generate_update_manifest.py` 的 `windows-x64` 资产名对应改成 zip。
 - **Android 签名**：job 从 base64 secret 还原 keystore 到 `$RUNNER_TEMP/release.jks`（不落仓库），`nsh package . --target android --keystore <jks> --key-alias <alias>`；密码经 `NSH_KEYSTORE_PASSWORD` env 传入（nsh 无单独 `--key-password`，keystore 与 key 同密码——生成 keystore 时务必同密）。**任一 secret 为空 → 跳过 keystore 还原、不带 `--keystore` 打包（debug key 签名）+ `::warning`**，不失败。
 - **Android secrets**（仓库 Settings → Secrets，已由人配置）：`ANDROID_KEYSTORE_BASE64`（`base64 release.jks` 全文）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`；另有 `ANDROID_KEY_PASSWORD` 一并配置但 workflow 不用（`nsh` 无 `--key-password`，keystore 与 key 同密码），留作将来换 key 时的占位。keystore 用 JDK 自带 `keytool -genkeypair -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias <alias>` 生成（本机已实测 `keytool -printcert -jarfile` 验签 CN=CardMind）。**密码不进任何文档/仓库文件**。
 - **Android 首次构建时长**：两个 ABI（arm64-v8a + armeabi-v7a，targets `aarch64-linux-android`/`armv7-linux-androideabi`）各 12–15 分钟级（debug 本机实测）；job `timeout-minutes: 90` + 缓存 `nsh-app/target`/`~/.cargo/*`。
-- **产物路径实测**（远端绿跑 `42264286665`）：linux `.nsh/out/cardmind.tar.gz`（顶层）、macos `.nsh/out/cardmind.app`（顶层目录）、windows `.nsh/out/cardmind/cardmind.zip`（嵌套）、android `.nsh/out/cardmind.apk`（顶层）。
+- **产物路径实测**（远端绿跑 `42264286665`）：linux `.nsh/out/cardmind.tar.gz`（顶层）、macos `.nsh/out/cardmind.app`（顶层目录）、windows `.nsh/out/cardmind.zip`（顶层；旁边 `cardmind/` 目录装 `cardmind.exe`）、android `.nsh/out/cardmind.apk`（顶层）。
 - **publish 的 working-directory**：全局 `defaults.run.working-directory: nsh-app`，而 manifest 脚本与资产在仓库根——`metadata`/`publish` 两个 job 各自覆盖回 `.`。
 
 ### 脚本改动
