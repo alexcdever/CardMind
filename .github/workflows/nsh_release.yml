@@ -115,10 +115,13 @@ jobs:
 
       - name: Restore Android keystore
         # secrets 不能直接用在步骤级 if：先落到 env 再判空。
-        # 全配齐才还原 release.jks；为空则走下一步的 debug 签名兜底。
+        # **三个** secret 全在才还原 release.jks——只判 BASE64 时，若 ALIAS/PASSWORD
+        # 缺失会带着空串去调 nsh（失败而非静默降级），不如直接走 debug 兜底。
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEYSTORE_PASSWORD != '' }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           ls -l "$RUNNER_TEMP/release.jks"
@@ -126,8 +129,10 @@ jobs:
       - name: Warn on debug signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' }}
-        run: echo "::warning::ANDROID_KEYSTORE_BASE64 未配置，本 APK 用 debug key 签名，仅供测试，不可分发"
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEY_ALIAS == '' || env.ANDROID_KEYSTORE_PASSWORD == '' }}
+        run: echo "::warning::Android 签名 secret 不全（需 ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_ALIAS / ANDROID_KEYSTORE_PASSWORD），本 APK 用 debug key 签名，仅供测试，不可分发"
 
       - name: Package android
         env:
