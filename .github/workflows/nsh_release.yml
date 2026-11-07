@@ -1,0 +1,372 @@
+name: CardMind Release
+
+# beta / stable 双通道发布 workflow（复刻旧 Flutter manual-build-artifacts 的语义）：
+#
+#   - 推 main          → beta 通道：tag `beta-<app版本>-beta.<run>`，prerelease: true
+#   - 推 tag v*.*.*    → stable 通道：tag = 该 tag，prerelease: false
+#   - workflow_dispatch → 手动触发（按 ref 走同一套 metadata 解析）
+#
+# 平台 job 各自打包并上传**改名后的发布资产**；publish job 汇总资产、生成
+# update-<channel>.json（tool/release/generate_update_manifest.py）并创建 Release。
+# 资产缺失容忍：publish 不用 if: success() 硬绑全绿，只要求 metadata 成功——
+# download-artifact 时哪个平台缺就缺哪个（manifest 只收录存在的资产）。
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+
+concurrency:
+  group: cardmind-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  # CLI 版本必须等于 nsh-app/Cargo.toml 的 nsh-core/nsh-base 版本，否则 CLI 拒绝。
+  NSH_VERSION: 'v0.4.0'
+  CARGO_TERM_COLOR: always
+
+# 打包命令统一在 nsh-app/ 下执行；publish 需要仓库根路径时自行覆盖 working-directory。
+defaults:
+  run:
+    working-directory: nsh-app
+
+jobs:
+  metadata:
+    name: Release metadata
+    runs-on: ubuntu-latest
+    # 解析出的版本/构建号/通道/tag 暴露给打包与发布 job。
+    outputs:
+      app_version: ${{ steps.meta.outputs.APP_VERSION }}
+      build: ${{ steps.meta.outputs.APP_BUILD }}
+      channel: ${{ steps.meta.outputs.RELEASE_CHANNEL }}
+      tag: ${{ steps.meta.outputs.RELEASE_TAG }}
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve release metadata
+        id: meta
+        # beta 的 base version 从 nsh-app/nsh.json 读，这里不需要 working-directory: nsh-app。
+        run: |
+          python3 tool/release/release_metadata.py \
+            --ref-name "${{ github.ref_name }}" \
+            --run-number "${{ github.run_number }}" \
+            --github-env "$GITHUB_OUTPUT"
+
+      - name: Show metadata
+        run: cat "$GITHUB_OUTPUT"
+
+  android:
+    name: Package (android)
+    runs-on: ubuntu-latest
+    # 两个 ABI（arm64-v8a + armeabi-v7a）首次编译各 12–15 分钟，给足余量。
+    timeout-minutes: 90
+    needs: metadata
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # app crate 不编 GTK，android 不需要 GTK4 链（与 package-linux 不同）。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake clang libclang-dev libwayland-dev libxkbcommon-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-${{ env.NSH_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: ${{ runner.os }}-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-nshapp-target-
+
+      - name: Restore Android keystore
+        # secrets 不能直接用在步骤级 if：先落到 env 再判空。
+        # **三个** secret 全在才还原 release.jks——只判 BASE64 时，若 ALIAS/PASSWORD
+        # 缺失会带着空串去调 nsh（失败而非静默降级），不如直接走 debug 兜底。
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEYSTORE_PASSWORD != '' }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          ls -l "$RUNNER_TEMP/release.jks"
+
+      - name: Warn on debug signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEY_ALIAS == '' || env.ANDROID_KEYSTORE_PASSWORD == '' }}
+        run: echo "::warning::Android 签名 secret 不全（需 ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_ALIAS / ANDROID_KEYSTORE_PASSWORD），本 APK 用 debug key 签名，仅供测试，不可分发"
+
+      - name: Package android
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          NSH_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          args=(--target android)
+          if [ -f "$RUNNER_TEMP/release.jks" ]; then
+            args+=(--keystore "$RUNNER_TEMP/release.jks" --key-alias "$ANDROID_KEY_ALIAS")
+          fi
+          nsh package . "${args[@]}"
+
+      - name: Stage release asset
+        run: cp .nsh/out/cardmind.apk "$GITHUB_WORKSPACE/CardMind-Android.apk"
+
+      - name: Upload android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-release-android
+          path: CardMind-Android.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    name: Package (linux)
+    runs-on: ubuntu-latest
+    needs: metadata
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # nsh package --target linux 本地编译 GTK4 runner，需 clang + GTK4/webkitgtk 头文件。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev clang libclang-dev libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-${{ env.NSH_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: ${{ runner.os }}-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-nshapp-target-
+
+      - name: Package linux
+        run: nsh package . --target linux
+
+      - name: Stage release asset
+        run: cp .nsh/out/cardmind.tar.gz "$GITHUB_WORKSPACE/CardMind-Linux-x64.tar.gz"
+
+      - name: Upload linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-release-linux
+          path: CardMind-Linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  macos:
+    name: Package (macos)
+    runs-on: macos-latest
+    needs: metadata
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nsh
+            ~/.local/bin
+          key: nsh-${{ env.NSH_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        run: |
+          curl -fsSL "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.sh" | NSH_VERSION="${NSH_VERSION}" sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            nsh-app/target
+          key: ${{ runner.os }}-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-nshapp-target-
+
+      - name: Package macos
+        # 产物：.nsh/out/cardmind.app（ad hoc 签名，目录形式）。
+        run: nsh package . --target macos
+
+      - name: Create DMG
+        run: hdiutil create -volname CardMind -srcfolder .nsh/out/cardmind.app -ov -format UDZO "$GITHUB_WORKSPACE/CardMind-macOS-arm64.dmg"
+
+      - name: Upload macos artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-release-macos
+          path: CardMind-macOS-arm64.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Package (windows)
+    runs-on: windows-latest
+    needs: metadata
+    defaults:
+      run:
+        working-directory: nsh-app
+        shell: pwsh
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache nsh distribution
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\nsh
+          key: nsh-${{ env.NSH_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install nsh CLI
+        # install.ps1 装到 %LOCALAPPDATA%\nsh 并改注册表 PATH（对当前 job 无效），
+        # 必须手动把 %LOCALAPPDATA%\nsh\bin 写进 GITHUB_PATH。
+        run: |
+          $env:NSH_VERSION='${{ env.NSH_VERSION }}'
+          irm "https://github.com/longbridge/nsh/releases/download/${{ env.NSH_VERSION }}/install.ps1" | iex
+          echo "$env:LOCALAPPDATA\nsh\bin" >> $env:GITHUB_PATH
+
+      - name: Cache Rust + nsh-app build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            nsh-app\target
+          key: ${{ runner.os }}-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-nshapp-target-
+
+      - name: Package windows
+        # 产物嵌套：.nsh/out/cardmind/cardmind.zip（Windows 没有 Inno Setup 安装器）。
+        run: nsh package . --target windows
+
+      - name: Stage release asset
+        run: Copy-Item .nsh/out/cardmind/cardmind.zip "$env:GITHUB_WORKSPACE/CardMind-Windows-x64.zip"
+
+      - name: Upload windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-release-windows
+          path: CardMind-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs: [metadata, android, linux, macos, windows]
+    # 部分平台失败仍发布（旧流水线语义：只要有资产就发）；
+    # 只硬性要求 metadata 成功且未被取消。
+    if: ${{ !cancelled() && needs.metadata.result == 'success' }}
+    defaults:
+      run:
+        # 脚本与资产都在仓库根，不能继承全局 nsh-app 工作目录。
+        working-directory: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        # merge-multiple 把各平台 artifact 平铺进 release-assets/；
+        # 缺某个平台也能跑，manifest 只收录存在的资产。
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate update manifest
+        run: |
+          python3 tool/release/generate_update_manifest.py \
+            --assets-dir release-assets \
+            --output "release-assets/update-${{ needs.metadata.outputs.channel }}.json" \
+            --repository "${{ github.repository }}" \
+            --tag "${{ needs.metadata.outputs.tag }}" \
+            --channel "${{ needs.metadata.outputs.channel }}" \
+            --version "${{ needs.metadata.outputs.app_version }}" \
+            --build "${{ needs.metadata.outputs.build }}" \
+            --published-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --minimum-supported-version "0.1.0" \
+            --release-notes "Automated ${{ needs.metadata.outputs.channel }} build from ${{ github.sha }}."
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.metadata.outputs.tag }}
+          name: CardMind ${{ needs.metadata.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ needs.metadata.outputs.channel == 'beta' }}
+          body: |
+            CardMind ${{ needs.metadata.outputs.app_version }} (build ${{ needs.metadata.outputs.build }})
+            Channel: ${{ needs.metadata.outputs.channel }}
+            Commit: ${{ github.sha }}
+          files: release-assets/*

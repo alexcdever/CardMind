@@ -11,7 +11,10 @@
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
 - **迁移收尾已完成**（2026-11，worktree `nsh-cleanup`）：Flutter CI/平台工程目录/`.gitignore` 残留已删，锚点规范改写为 NSH 版，`AGENTS.md` 平台与日志段落改为 NSH 现状。删除项与验证证据见 [`docs/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md) §10。
-- **CI 现状**（2026-11-06，`ci-nsh-package`）：`rust_quality.yml` 仍跑 Rust fmt/clippy/test/coverage；新增 `.github/workflows/nsh_app.yml` 用 nsh CLI 0.4.0 跑前端质量（tsx/`nsh check`/两条带 filter 的 `nsh test`）+ linux/macos/windows/web 打包（仅 main/tag `v*`/dispatch，PR 不打包；iOS/Android 属发布工程未接入，见 §29）。
+- **CI 现状**（2026-11-07，`ci-release-channels`）：三个 workflow——
+  - `rust_quality.yml`：Rust fmt/clippy/test/coverage；
+  - `.github/workflows/nsh_app.yml`：nsh CLI 0.4.0 前端质量（tsx/`nsh check`/两条带 filter 的 `nsh test`）+ linux/macos/windows 打包（仅 main/tag `v*`/dispatch，PR 不打包；web 目标已删——后端链编不进 wasm，见 progress §32）；
+  - `.github/workflows/nsh_release.yml`：**beta/stable 双通道 Release**——push `main` 发 `beta-<version>-beta.<run>` prerelease、tag `v*.*.*` 发正式 release；android（keystore 签名）+ linux + macos（DMG）+ windows（zip）四平台资产 + `update-<channel>.json` 更新清单（progress §33）。发布用 secrets：`ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS`（未配则 debug key 签名 + 告警，不失败）。
 
 > 如果用户只想保留源码，不必复制 `node_modules/`、`target/`、`nsh-app/.nsh/`、`nsh-app/out/`；这些都能重新生成（见 §4）。
 
@@ -146,7 +149,7 @@ spike/nsh-editor-md-probe/  P2 探针与截图（已提交）
 4. **测试盲区补强**（审查记录）：
    - 为 `<Each key>` 写能真正区分「重建 vs `setValue` 重载」的撤销隔离测试；
    - 为移动端「新建笔记」按钮补行为测试（当前无覆盖）。
-5. **打包/发布**：`nsh package --target windows`，核对 `.nshpkg`/签名/更新流程（参见 `cardmind-nshpkg-vs-msix` 经验）。
+5. **打包/发布**：已接入 `nsh_release.yml` 双通道（beta=push main / stable=tag `v*.*.*`），见 progress §33；剩余是按 ADR 0009 把更新检查客户端对齐 `update-<channel>.json`（manifest 平台资产 = apk/zip/tar.gz/dmg，无 msix/Setup.exe）。
 6. **P4-3b 已完成**：WYSIWYG `[[` suggestion 候选（点击/Enter/Tab 接受，方向键高亮，Escape 收起）、`cardmind://` 链接气泡菜单「打开笔记」跳转（`onNavigateNote` 接缝已连通：桌面三栏切选中，否则 `openEditor` push）。剩余可选：`autoFocus` 真机焦点验证、真窗口下链接点击的真实鼠标路径（headless 用 f9 选区模拟）。
 
 ## 10. 备注

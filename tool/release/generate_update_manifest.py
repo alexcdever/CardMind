@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate a CardMind update manifest from staged release assets."""
+"""Generate a CardMind update manifest from staged release assets.
+
+NSH 产物现实（nsh_release.yml 上传名）：Windows 没有 Inno Setup 安装器，
+`nsh package --target windows` 产出 zip；macOS 资产是 DMG。
+
+资产缺失容忍：缺失/为空的平台只跳过并告警（publish 允许部分平台失败）；
+一个资产都没有才失败（SystemExit，非零退出）。
+"""
 
 from __future__ import annotations
 
@@ -10,8 +17,10 @@ from pathlib import Path
 from urllib.parse import quote
 
 
+APP_ID = "com.cardmind.nsh"
+
 ASSETS = {
-    "windows-x64": "CardMind-Setup.exe",
+    "windows-x64": "CardMind-Windows-x64.zip",
     "android": "CardMind-Android.apk",
     "linux-x64": "CardMind-Linux-x64.tar.gz",
     "macos-arm64": "CardMind-macOS-arm64.dmg",
@@ -32,7 +41,8 @@ def build_manifest(args: argparse.Namespace) -> dict:
     for platform, filename in ASSETS.items():
         path = root / filename
         if not path.is_file() or path.stat().st_size == 0:
-            raise SystemExit(f"missing or empty release asset: {path}")
+            print(f"warning: missing or empty release asset, skipping {platform}: {path}")
+            continue
         platforms[platform] = {
             "artifact": filename,
             "url": (
@@ -47,9 +57,12 @@ def build_manifest(args: argparse.Namespace) -> dict:
             "sha256": sha256(path),
         }
 
+    if not platforms:
+        raise SystemExit(f"no release assets found in {root} (expected one of {sorted(ASSETS.values())})")
+
     return {
         "schemaVersion": 1,
-        "appId": "com.cardmind.v2",
+        "appId": args.app_id,
         "channel": args.channel,
         "version": args.version,
         "build": args.build,
@@ -74,6 +87,7 @@ def main() -> None:
     parser.add_argument("--published-at", required=True)
     parser.add_argument("--minimum-supported-version", required=True)
     parser.add_argument("--release-notes", nargs="*", default=[])
+    parser.add_argument("--app-id", default=APP_ID)
     args = parser.parse_args()
 
     manifest = build_manifest(args)

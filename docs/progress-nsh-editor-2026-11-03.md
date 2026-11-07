@@ -1582,3 +1582,48 @@ rfd v0.15.4（文件对话框，feature xdg-portal，非 gtk3）
 **同一轮另外确认**：`rust_quality.yml` 在 `42249740187` **首次绿（13m06s）**——它自 2026-10-13 起因同一 `libwayland-dev` 缺口一直红，本轮顺带修好。
 
 **最终 workflow 形态**：`nsh_app.yml` = 1 个质量 job + 3 个打包 job（linux / macos / windows；PR 只跑质量，main/tag/dispatch 才打包）。
+
+## 33. CI：beta/stable 双通道 GitHub Release + Android APK（2026-11-07，worktree `ci-release-channels`，基线 `main@cdef6830`）
+
+`nsh_app.yml` 只上传 artifacts 不发 Release。本轮新增 `.github/workflows/nsh_release.yml`，复刻旧 Flutter `manual-build-artifacts.yml`（已删，`6195f2ab^`）的发布语义，并首次接入 Android APK 打包。
+
+### 双通道设计
+
+| 触发 | 通道 | tag | prerelease | version |
+|---|---|---|---|---|
+| push `main` | beta | `beta-<nsh.json version>-beta.<run>` | `true` | `<base>-beta.<run>`（base 从 `nsh-app/nsh.json` 读） |
+| push tag `v*.*.*` | stable | = 该 tag | `false` | = tag 里的 X.Y.Z |
+| `workflow_dispatch` | 按 ref 解析（同上规则） | | | |
+
+- `concurrency: cardmind-release-${{ github.ref }}` + `cancel-in-progress`；`permissions: contents: write`。
+- **`metadata` job**（ubuntu）：`tool/release/release_metadata.py` 把 `APP_VERSION/APP_BUILD/RELEASE_CHANNEL/RELEASE_TAG` 写进 `$GITHUB_OUTPUT`，作为 job outputs 供下游消费。
+- **四个打包 job**（android/linux/macos/windows）各 `needs: metadata`，产物改名成统一发布资产名后 `upload-artifact`：`CardMind-Android.apk` / `CardMind-Linux-x64.tar.gz` / `CardMind-macOS-arm64.dmg`（`hdiutil` 从 `.app` 目录生成）/ `CardMind-Windows-x64.zip`。
+- **`publish` job**：`needs` 全部四个打包 job，但 `if: !cancelled() && needs.metadata.result == 'success'`——**不硬绑全绿**（旧流水线「允许部分平台失败仍发」的语义）；`download-artifact` merge-multiple 后 `generate_update_manifest.py` 生成 `update-<channel>.json`，`softprops/action-gh-release@v2` 以 `release-assets/*` 发 Release。
+
+### 关键决策与理由
+
+- **web 不做**：§32 已证后端依赖链（iroh/rusqlite/tokio）编不进 wasm，release 通道同样不含 web。
+- **Windows 是 zip 不是 Setup.exe**：`nsh package --target windows` 产物就是 `.nsh/out/cardmind/cardmind.zip`，nsh 不提供 Inno Setup 安装器；`tool/installer/cardmind.iss` 是 Flutter 时代脚本，产物 `CardMind-Setup.exe` 已不存在。`generate_update_manifest.py` 的 `windows-x64` 资产名对应改成 zip。
+- **Android 签名**：job 从 base64 secret 还原 keystore 到 `$RUNNER_TEMP/release.jks`（不落仓库），`nsh package . --target android --keystore <jks> --key-alias <alias>`；密码经 `NSH_KEYSTORE_PASSWORD` env 传入（nsh 无单独 `--key-password`，keystore 与 key 同密码——生成 keystore 时务必同密）。**任一 secret 为空 → 跳过 keystore 还原、不带 `--keystore` 打包（debug key 签名）+ `::warning`**，不失败。
+- **Android secrets**（仓库 Settings → Secrets，已由人配置）：`ANDROID_KEYSTORE_BASE64`（`base64 release.jks` 全文）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`；另有 `ANDROID_KEY_PASSWORD` 一并配置但 workflow 不用（`nsh` 无 `--key-password`，keystore 与 key 同密码），留作将来换 key 时的占位。keystore 用 JDK 自带 `keytool -genkeypair -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias <alias>` 生成（本机已实测 `keytool -printcert -jarfile` 验签 CN=CardMind）。**密码不进任何文档/仓库文件**。
+- **Android 首次构建时长**：两个 ABI（arm64-v8a + armeabi-v7a，targets `aarch64-linux-android`/`armv7-linux-androideabi`）各 12–15 分钟级（debug 本机实测）；job `timeout-minutes: 90` + 缓存 `nsh-app/target`/`~/.cargo/*`。
+- **产物路径实测**（远端绿跑 `42264286665`）：linux `.nsh/out/cardmind.tar.gz`（顶层）、macos `.nsh/out/cardmind.app`（顶层目录）、windows `.nsh/out/cardmind/cardmind.zip`（嵌套）、android `.nsh/out/cardmind.apk`（顶层）。
+- **publish 的 working-directory**：全局 `defaults.run.working-directory: nsh-app`，而 manifest 脚本与资产在仓库根——`metadata`/`publish` 两个 job 各自覆盖回 `.`。
+
+### 脚本改动
+
+- `release_metadata.py`：beta base version 改从 `nsh-app/nsh.json` 读（`resolve()` 加可选 `nsh_json` 参数、`--nsh-json` CLI 开关，默认按脚本位置推 `nsh-app/nsh.json`）；输出键不变（`FLUTTER_VERSION`/`WINDOWS_*` 为沿用旧名的遗留字段）。
+- `generate_update_manifest.py`：`ASSETS` 四平台名改现实产物；缺资产只告警跳过、**全缺才 `SystemExit`**；`appId` 改 `com.cardmind.nsh` 并可 `--app-id` 覆盖。
+- `test_*.py` 同步：beta 读 nsh.json 用例、非 tag ref、缺资产仍生成/全缺失败/空文件跳过/appId 参数化。
+
+### 本地验证（2026-11-07）
+
+- `python3 -m unittest discover -s tool/release -p 'test_*.py'`（仓库根 + `tool/release` 两种跑法）：**10 tests OK**。
+- manifest 实测（`/tmp` 假资产）：stable（tag `v1.2.3`）与 beta（tag `beta-0.1.0-beta.42`）两通道 `channel/version/build/platforms/sha256/url` 全对；只放 2 个资产时 `platforms` 恰含 `android`+`windows-x64`；0 资产 `SystemExit`（exit=1）。
+- `release_metadata.py` 三输入：`v1.2.3`→stable/`1.2.3`；`main`、`nonsense`→beta/`0.1.0-beta.42`（tag `beta-0.1.0-beta.42`）。
+- `ruby -ryaml` 两个 workflow 解析合法；`git_gate full --dry-run` ✅；markdown linter ✅（50 files/1132 refs，缺失项均为 worktree 未跟踪的本机文件，同 §29）；`dart format` 0 changed。
+
+### 遗留
+
+- `channelManifestUrl` 仍指向 `channel-<channel>/<channel>.json` 命名（沿用旧脚本既有约定，与发布到 Release 的 `update-<channel>.json` 文件名不同）；客户端更新检查落地时如需改名再统一。
+- iOS 仍不在发布工程内（无工程目录与签名材料）。
