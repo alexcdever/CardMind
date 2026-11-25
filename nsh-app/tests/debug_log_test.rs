@@ -20,9 +20,9 @@ mod common;
 
 use std::sync::Arc;
 
-use cardmind_backend::debug_log::{self, CollectingSink, LogEvent, PanickingSink};
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{PairingTarget, SyncService};
+use nsh_app_cardmind::kernel::debug_log::{self, CollectingSink, LogEvent, PanickingSink};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{PairingTarget, SyncService};
 
 use common::{require_ipv4, rt, temp_dir};
 

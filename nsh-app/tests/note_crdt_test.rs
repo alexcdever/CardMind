@@ -1,4 +1,4 @@
-use cardmind_backend::sync::NoteCrdt;
+use nsh_app_cardmind::kernel::sync::NoteCrdt;
 
 #[test]
 fn created_note_reads_back_its_content() {

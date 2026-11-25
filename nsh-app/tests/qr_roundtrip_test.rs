@@ -1,11 +1,11 @@
 //! 配对二维码 encode→PNG→decode 往返测试（QR 图片保存/识别任务验收标准 2）。
 //!
-//! 覆盖 `cardmind_backend::qr` 的核心逻辑：`render_credential_qr_png` 纯函数 +
+//! 覆盖 `nsh_app_cardmind::kernel::qr` 的核心逻辑：`render_credential_qr_png` 纯函数 +
 //! `decode_qr_bytes`/`decode_qr_image` 解码。`save_pairing_qr_png` /
 //! `decode_pairing_qr_file` 的 rfd 系统对话框路径在 headless 环境下不实弹，
 //! 靠本文件的往返测试覆盖「渲染出的 PNG 确实能被识别回原凭证」这一核心。
 
-use cardmind_backend::qr::{decode_qr_bytes, render_credential_qr_png};
+use nsh_app_cardmind::kernel::qr::{decode_qr_bytes, render_credential_qr_png};
 
 /// `cm1.` 形式的样例凭证（结构与真凭证一致：`cm1.` + base64url 载荷）。
 const SAMPLE_CREDENTIAL: &str =

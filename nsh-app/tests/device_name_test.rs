@@ -1,14 +1,14 @@
 mod common;
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{
-    decode_device_name_frame, default_device_name_with, encode_device_name_frame, load_device_name,
-    normalize_hostname, store_device_name, SyncService,
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{
+    SyncService, decode_device_name_frame, default_device_name_with, encode_device_name_frame,
+    load_device_name, normalize_hostname, store_device_name,
 };
 // 仅 unix 用例（下方 A3）使用；Windows 下引入会触发 unused_imports/clippy 失败
-#[cfg(unix)]
-use cardmind_backend::sync::detect_hostname;
 use common::{rt, temp_dir};
+#[cfg(unix)]
+use nsh_app_cardmind::kernel::sync::detect_hostname;
 
 /// 取不到任何主机名时的兜底串（与 `default_device_name_with` 一致）。
 const FALLBACK: &str = "CardMind Device";
@@ -202,9 +202,11 @@ fn update_paired_device_name_only_updates_existing() {
     assert!(store.list_paired_devices().unwrap().is_empty());
 
     store.upsert_paired_device("peer-1", "Old Name").unwrap();
-    assert!(store
-        .update_paired_device_name("peer-1", "New Name")
-        .unwrap());
+    assert!(
+        store
+            .update_paired_device_name("peer-1", "New Name")
+            .unwrap()
+    );
     let rows = store.list_paired_devices().unwrap();
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].name, "New Name");

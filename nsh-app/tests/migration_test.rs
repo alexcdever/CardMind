@@ -1,7 +1,7 @@
 mod common;
 
-use cardmind_backend::sync::{NoteCrdt, SyncService};
 use common::temp_dir;
+use nsh_app_cardmind::kernel::sync::{NoteCrdt, SyncService};
 
 const LORO_MAGIC: &[u8; 8] = b"CARDMIND";
 

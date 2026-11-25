@@ -9,9 +9,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cardmind_backend::debug_log::{redact_device_id, CollectingSink};
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{nonce_to_hex, PairingTarget, SyncService};
+use nsh_app_cardmind::kernel::debug_log::{CollectingSink, redact_device_id};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{PairingTarget, SyncService, nonce_to_hex};
 
 /// 旧回滚 relay（:9443，仅作历史链路保留；不得作为标准 443 验收证据）。
 const RELAY_URL: &str = "https://relay.alexc.cn:9443";
