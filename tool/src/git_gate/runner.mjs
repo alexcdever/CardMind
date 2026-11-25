@@ -237,8 +237,11 @@ export function runWithTimeout({
           // taskkill /T 终止完整进程树；taskkill 本身也套超时，防挂死。
           // Node ≥20.12 对 taskkill.exe（非 .cmd）可直接 spawn。
           const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F']);
-          const killerDone = new Promise((r) => killer.on('close', r));
-          killer.on('error', r);
+          const killerDone = new Promise((resolve) => {
+            killer.on('close', resolve);
+            // taskkill 起不来（PATH 缺 exe）时也结束等待，别让 race 悬空。
+            killer.on('error', resolve);
+          });
           await Promise.race([killerDone, new Promise((r) => setTimeout(r, 10_000))]);
         } else {
           // POSIX：递归收集后代（pgrep -P）后自底向上 kill
