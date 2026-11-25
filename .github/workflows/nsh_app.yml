@@ -30,7 +30,7 @@ on:
 
 env:
   # CLI 版本必须等于 nsh-app/Cargo.toml 的 nsh-core/nsh-base 版本，否则 CLI 拒绝。
-  NSH_VERSION: 'v0.4.0'
+  NSH_VERSION: 'v0.7.0'
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -72,7 +72,7 @@ jobs:
           path: |
             ~/.nsh
             ~/.local/bin
-          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+          key: nsh-v0.7.0-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install nsh CLI
         # install.sh 装到 ~/.nsh 并软链 nsh 到 ~/.local/bin（不在 PATH，须加 GITHUB_PATH）。
@@ -144,7 +144,7 @@ jobs:
           path: |
             ~/.nsh
             ~/.local/bin
-          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+          key: nsh-v0.7.0-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install nsh CLI
         run: |
@@ -199,7 +199,7 @@ jobs:
           path: |
             ~/.nsh
             ~/.local/bin
-          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+          key: nsh-v0.7.0-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install nsh CLI
         run: |
@@ -255,7 +255,7 @@ jobs:
         with:
           path: |
             ~\AppData\Local\nsh
-          key: nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}
+          key: nsh-v0.7.0-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install nsh CLI
         # install.ps1 装到 %LOCALAPPDATA%\nsh 并改注册表 PATH（对当前 job 无效）；
