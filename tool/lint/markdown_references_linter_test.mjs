@@ -42,8 +42,8 @@ test('已删除历史链路：命中前缀本身或位于其下 → 不判存在
     'nsh-app/editor_test_entry.tsx',
     'nsh-app/editor_test_repo.ts',
     'tool/boundary_scanner',
+    // 2026-11 合并后 rust-backend/ 整目录属已删除历史链路（含下述 FRB/api 引用）。
     'rust-backend/tool/boundary_scanner',
-    // P1 死代码清理：FRB 生成物与导出层已删，历史文档仍引用。
     'rust-backend/src/frb_generated.rs',
     'rust-backend/src/api.rs',
     'nsh-app/src/main.rs',
@@ -63,8 +63,7 @@ test('构建产物：生成目录同样不判存在性', () => {
     'nsh-app/target',
     'nsh-app/target/debug/build/x',
     'nsh-app/.nsh/types',
-    'rust-backend/target/release/cardmind_backend.dll',
-  ];
+    ];
   for (const token of buildTokens) {
     assert.ok(isBuildOutputPath(token), `构建产物: ${token}`);
   }
@@ -85,7 +84,6 @@ test('名字相近的现存路径必须照常判定（否则检查等于被关�
     'spike/nsh-editor-md-probe',
     'nsh-app/webx/a.ts',
     'nsh-app/editor_page_test.ts.bak',
-    'rust-backend/src/store.rs',
   ];
   for (const token of stillJudged) {
     assert.ok(
@@ -99,7 +97,7 @@ test('本地日志（.log）不判存在性；非日志文件不受影响', () =
   const logTokens = [
     'spike/nsh-editor-md-probe/logs/test-final2.log',
     'spike/nsh-editor-md-probe/logs/run-windows.log',
-    'rust-backend/target/release/build.log',
+    'nsh-app/target/release/build.log',
   ];
   for (const token of logTokens) {
     assert.ok(isLocalLogPath(token), `本地日志: ${token}`);
@@ -205,8 +203,8 @@ test('行内代码路径只判定仓库根相对路径：`..` 开头描述的是
     '仓库相对路径 docs/product.md',
   );
   assert.ok(
-    isRepoRelativeToken(root, 'rust-backend/src'),
-    '仓库相对路径 rust-backend/src',
+    isRepoRelativeToken(root, 'nsh-app/src'),
+    '仓库相对路径 nsh-app/src',
   );
   assert.ok(
     !isRepoRelativeToken(root, '../nsh/types'),

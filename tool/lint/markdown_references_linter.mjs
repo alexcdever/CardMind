@@ -87,7 +87,6 @@ export const ignoredRelativePrefixes = [];
 export const buildOutputPrefixes = [
   'build/',
   '.dart_tool/',
-  'rust-backend/target/',
   'sync-verify/target/',
   'nsh-app/target/',
   // `nsh check` / `nsh test` / `nsh package` 生成的目录（types、runt、out 等）。
@@ -131,14 +130,15 @@ export const deletedHistoryPrefixes = [
   'nsh-app/editor_page_test.ts',
   'nsh-app/editor_test_entry.tsx',
   'nsh-app/editor_test_repo.ts',
-  // Flutter 时代的 Dart 边界扫描器（4.6 删除）；Rust 版 rust-backend/tool/
-  // boundary_scanner 本次死代码清理也移除，历史/研究文档仍引用。
+  // Flutter 时代的 Dart 边界扫描器（4.6 删除）与其后的 Rust 版
+  // rust-backend/tool/boundary_scanner，历史/研究文档仍引用。
   'tool/boundary_scanner',
-  'rust-backend/tool/boundary_scanner',
-  // P1 死代码清理（2026-11）：FRB 生成物与导出层整删；ADR/迁移/基线文档
-  // 作为历史记录仍会引用这两个文件。
-  'rust-backend/src/frb_generated.rs',
-  'rust-backend/src/api.rs',
+  // 2026-11 合并：rust-backend/ 整目录并入 nsh-app（src 五个模块 →
+  // nsh-app/src/kernel/，tests/examples → nsh-app/{tests,examples}，
+  // Cargo.toml 合流后删除；原 FRB 生成物 rust-backend/src/frb_generated.rs
+  // 与导出层 api.rs 已先删）。前缀豁免覆盖所有历史/研究/归档文档对
+  // rust-backend/** 的引用。
+  'rust-backend/',
   // Rust-native 演示入口（P1 删除；TSX app 由 App.tsx 入口运行）。
   'nsh-app/src/main.rs',
   // 旧打包产物（整个 `.nsh/` 另见 buildOutputPrefixes）。
