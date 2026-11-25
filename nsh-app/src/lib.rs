@@ -1,6 +1,7 @@
 //! The application's Rust module surface, served to the TSX entry point (`App.tsx`).
 
 mod backend;
+pub mod kernel;
 
 use backend::{Backend, BackendNotes, BackendPairing, BackendStore, BackendSync};
 use nsh_core::prelude::*;

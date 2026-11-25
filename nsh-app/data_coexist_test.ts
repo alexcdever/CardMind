@@ -25,7 +25,6 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '..');
 const read = (...p: string[]) => readFileSync(path.join(...p), 'utf8');
 
 // P2-1 起后端接缝拆到 `src/backend/*.rs`；把 lib.rs + 各模块源拼起来，保持原断言语义。
@@ -164,9 +163,9 @@ describe('4.4 数据共存：NSH 壳直接打开旧版数据目录', () => {
           ...process.env,
           // 显式把夹具源传给探针（不依赖探针内部默认路径推导）。
           COEXIST_FIXTURE_DB: realDb,
-          // 复用主树编译产物提速（target 在 .gitignore，不污染提交）。
+          // 复用 nsh-app/target 的编译产物提速（target 在 .gitignore，不污染提交）。
           CARGO_TARGET_DIR:
-            process.env.CARGO_TARGET_DIR ?? path.join(repoRoot, 'rust-backend', 'target'),
+            process.env.CARGO_TARGET_DIR ?? path.join(here, 'target'),
         },
       },
     );

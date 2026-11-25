@@ -7,8 +7,8 @@
 
 mod common;
 
-use cardmind_backend::sync::SyncService;
 use common::temp_dir;
+use nsh_app_cardmind::kernel::sync::SyncService;
 
 const RELAY_URL: &str = "https://relay.alexc.cn:9443";
 

@@ -8,16 +8,16 @@ use anyhow::{Context, Result};
 use atomic_write_file::AtomicWriteFile;
 use chrono::{DateTime, Utc};
 use iroh::{
-    endpoint::presets, Endpoint, EndpointAddr, PublicKey, RelayMode, SecretKey, Signature,
-    TransportAddr,
+    Endpoint, EndpointAddr, PublicKey, RelayMode, SecretKey, Signature, TransportAddr,
+    endpoint::presets,
 };
 use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::debug_log::{self, LogEvent, LogSink, PlatformSink};
-use crate::discovery::{DiscoveryService, PeerInfo};
-use crate::store::NoteStore;
+use crate::kernel::debug_log::{self, LogEvent, LogSink, PlatformSink};
+use crate::kernel::discovery::{DiscoveryService, PeerInfo};
+use crate::kernel::store::NoteStore;
 
 /// 同步服务 — 管理笔记集合并通过 iroh 与对端同步
 pub struct SyncService {
@@ -619,7 +619,7 @@ impl SyncService {
         let mut rng = rand::rngs::OsRng;
         let code_num: u32 = rng.gen_range(100000..=999999);
         let code = format!("{code_num:06}");
-        let nonce: [u8; 16] = rng.gen();
+        let nonce: [u8; 16] = rng.r#gen();
         let session = PairingSession {
             code: code.clone(),
             created_at: Utc::now(),
@@ -1182,16 +1182,15 @@ impl SyncService {
         // 若存在待确认请求，声明身份必须绑定到认证传输身份（防身份混淆）。
         {
             let guard = self.pending_pairing.lock().unwrap();
-            if let Some(pending) = guard.as_ref() {
-                if validate_pairing_request_identity(&pending.transport_id.to_string(), requester)
+            if let Some(pending) = guard.as_ref()
+                && (validate_pairing_request_identity(&pending.transport_id.to_string(), requester)
                     .is_err()
-                    || !pairing_identity_matches(&pending.request.device_id, &requester.device_id)
-                {
-                    return Err(rejected(
-                        PairingRejectReason::RequestMismatch,
-                        "pairing requester identity does not match transport",
-                    ));
-                }
+                    || !pairing_identity_matches(&pending.request.device_id, &requester.device_id))
+            {
+                return Err(rejected(
+                    PairingRejectReason::RequestMismatch,
+                    "pairing requester identity does not match transport",
+                ));
             }
         }
 
@@ -1239,21 +1238,20 @@ impl SyncService {
 
         // 决策 8：首次配对自动全量同步（仅真实握手后推送；失败容忍——配对已成功，
         // 快照可稍后由同步层重试）
-        if had_handshake {
-            if let Err(e) = self
+        if had_handshake
+            && let Err(e) = self
                 .push_to_peer(&requester.device_id, requester.ips.clone())
                 .await
-            {
-                self.emit_log(
-                    LogEvent::new("sync.push", "sync.initial")
-                        .with_id(&self.device_id())
-                        .with_id(&requester.device_id)
-                        .with_field("direction", "push")
-                        .with_field("action", "failed_tolerated")
-                        .with_error(&e.to_string())
-                        .with_chain(&format!("{e:#}")),
-                );
-            }
+        {
+            self.emit_log(
+                LogEvent::new("sync.push", "sync.initial")
+                    .with_id(&self.device_id())
+                    .with_id(&requester.device_id)
+                    .with_field("direction", "push")
+                    .with_field("action", "failed_tolerated")
+                    .with_error(&e.to_string())
+                    .with_chain(&format!("{e:#}")),
+            );
         }
 
         Ok(PairingResult {
@@ -4221,7 +4219,7 @@ impl SyncService {
         let mut rng = rand::rngs::OsRng;
         let code_num: u32 = rng.gen_range(100000..=999999);
         let code = format!("{code_num:06}");
-        let nonce: [u8; 16] = rng.gen();
+        let nonce: [u8; 16] = rng.r#gen();
 
         let now = Utc::now();
         let issued_at = now.timestamp() as u64;
@@ -5324,9 +5322,10 @@ mod tests {
         }
         let hex = nonce_to_hex(&nonce);
         assert_eq!(hex, "00112233445566778899aabbccddeeff");
-        assert!(hex
-            .chars()
-            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        assert!(
+            hex.chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        );
         assert_eq!(nonce_from_hex(&hex).unwrap(), nonce);
     }
 

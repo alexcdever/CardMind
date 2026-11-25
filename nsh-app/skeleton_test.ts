@@ -77,25 +77,40 @@ describe('Cargo.toml', () => {
     assert.match(manifest, /^\[workspace\]\s*$/m);
   });
 
-  // 施工方案 1.7 + 1.4 起，nsh-app 就是要接真后端：路径依赖 rust-backend
-  // （独立 workspace，靠 path 依赖引入，不并入 rust-backend 的 members）。
-  // 之前那条「不引入后端依赖」的 Phase 0 断言已随 1.7 落地而反转——
-  // 但「loro / iroh 不得由 nsh-app 直接声明」这条覆盖要保留：
-  // 它们只能经 cardmind-backend 间接使用，直接声明等于绕过后端 crate
-  // 自己操纵 CRDT / 网络层。（path 依赖行 `cardmind-backend = { path = "../rust-backend" }`
-  // 本身不含 loro/iroh，按「依赖名 =」匹配不会误命中。）
-  it('以 path 依赖引入 cardmind-backend（不直接依赖 loro/iroh）', () => {
-    assert.match(
-      manifest,
-      /cardmind-backend\s*=\s*\{\s*path\s*=\s*"\.\.\/rust-backend"\s*\}/,
-      '应引入 cardmind-backend（path = "../rust-backend"）',
-    );
-    for (const dep of ['loro', 'iroh']) {
-      assert.ok(
-        !new RegExp(`(^|[^A-Za-z0-9_-])${dep}\\s*=`).test(manifest),
-        `nsh-app/Cargo.toml 不应直接依赖 ${dep}（应经 cardmind-backend 间接用）`,
+  // 2026-11 合并后的新边界：内核（src/kernel/）与 NSH 外壳同属一个 crate，
+  // 于是「manifest 不得声明 loro/iroh」这条旧断言不再成立（单 manifest 必须声明）。
+  // 设计约束本身保留，只是搬到仍然成立的位置：外壳不得在代码里直接使用内核的
+  // 底层依赖——CRDT / 网络 / 存储只能经 `crate::kernel::…` 的公开类型使用。
+  it('src/backend 不直接使用内核底层依赖（loro/iroh/mdns_sd/rusqlite）', () => {
+    const backendDir = path.join(here, 'src', 'backend');
+    const rsFiles = readdirSync(backendDir).filter((f) => f.endsWith('.rs'));
+    assert.ok(rsFiles.length > 0, 'src/backend/ 应有 .rs 模块');
+    for (const f of rsFiles) {
+      // 只看代码行：注释里提到 iroh/loro 是说明性文字，不是依赖使用。
+      const code = read(path.join('src', 'backend', f)).replace(/\/\/[^\r\n]*/g, '');
+      for (const dep of ['loro', 'iroh', 'mdns_sd', 'rusqlite']) {
+        assert.ok(
+          !new RegExp(`\\b${dep}\\b`).test(code),
+          `src/backend/${f} 不应在代码里直接引用 ${dep}（应经 crate::kernel）`,
+        );
+      }
+    }
+  });
+
+  it('外壳经 crate::kernel 引入内核，且测试后门（test-utils）仍打开', () => {
+    for (const f of ['globals.rs', 'dto.rs', 'pairing.rs', 'store.rs', 'sync.rs']) {
+      assert.match(
+        read(path.join('src', 'backend', f)),
+        /use crate::kernel::/,
+        `src/backend/${f} 应 \`use crate::kernel::…\``,
       );
     }
+    assert.match(manifest, /^test-utils\s*=\s*\[\]$/m, 'Cargo.toml 应有 test-utils feature');
+    assert.match(
+      manifest,
+      /nsh-app-cardmind\s*=\s*\{\s*path\s*=\s*"\.",\s*features\s*=\s*\["test-utils"\]\s*\}/,
+      'Cargo.toml 应有自引用 dev-dependency（打开集成测试的后门方法）',
+    );
   });
 });
 

@@ -10,11 +10,11 @@ mod common;
 
 use std::sync::Arc;
 
-use cardmind_backend::debug_log::{CollectingSink, LogEvent};
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{
-    credential_to_string, encode_credential_v2, PairingCredentialErrorKind, PairingTarget,
-    SyncService,
+use nsh_app_cardmind::kernel::debug_log::{CollectingSink, LogEvent};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{
+    PairingCredentialErrorKind, PairingTarget, SyncService, credential_to_string,
+    encode_credential_v2,
 };
 
 use iroh::SecretKey;

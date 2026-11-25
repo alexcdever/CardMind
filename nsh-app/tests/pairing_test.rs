@@ -8,9 +8,9 @@
 
 mod common;
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{nonce_to_hex, PairingSession, PairingTarget, SyncService};
 use common::{requester, require_ipv4, rt};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{PairingSession, PairingTarget, SyncService, nonce_to_hex};
 
 /// 取当前会话 nonce 的 hex 表示（confirm 侧强制校验要求的真实值）。
 fn session_nonce(svc: &SyncService) -> String {
@@ -330,11 +330,13 @@ fn pairing_pushes_full_snapshot_to_initiator() {
 fn unpair_removes_the_paired_device_row() {
     let store = NoteStore::new(":memory:").unwrap();
     store.upsert_paired_device("peer-a", "Alice").unwrap();
-    assert!(store
-        .list_paired_devices()
-        .unwrap()
-        .iter()
-        .any(|d| d.peer_id == "peer-a"));
+    assert!(
+        store
+            .list_paired_devices()
+            .unwrap()
+            .iter()
+            .any(|d| d.peer_id == "peer-a")
+    );
 
     store.remove_paired_device("peer-a").unwrap();
     assert!(

@@ -1,7 +1,7 @@
 mod common;
 
-use cardmind_backend::store::{LinkRow, NoteStore};
-use cardmind_backend::sync::NoteCrdt;
+use nsh_app_cardmind::kernel::store::{LinkRow, NoteStore};
+use nsh_app_cardmind::kernel::sync::NoteCrdt;
 use rusqlite::Connection;
 
 #[test]

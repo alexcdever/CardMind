@@ -18,13 +18,11 @@ on:
     # 会被 paths 过滤跳过，此时用 workflow_dispatch 兜底手动触发打包。
     paths:
       - 'nsh-app/**'
-      - 'rust-backend/**'      # nsh-app app crate path 依赖 rust-backend
       - '.github/workflows/nsh_app.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'nsh-app/**'
-      - 'rust-backend/**'
       - '.github/workflows/nsh_app.yml'
   workflow_dispatch:
 
@@ -82,14 +80,14 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Cache Rust + nsh-app build
-        # nsh check/test 的 cargo 默认 target 是 nsh-app/target（不是 rust-backend/target）。
+        # nsh check/test 的 cargo 默认 target 是 nsh-app/target（单 crate 后唯一的 target 目录）。
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             nsh-app/target
-          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock') }}
           restore-keys: |
             Linux-${{ github.job }}-nshapp-target-
 
@@ -158,7 +156,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             nsh-app/target
-          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          key: Linux-${{ github.job }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock') }}
           restore-keys: |
             Linux-${{ github.job }}-nshapp-target-
 
@@ -213,7 +211,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             nsh-app/target
-          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-nshapp-target-
 
@@ -273,7 +271,7 @@ jobs:
             ~\.cargo\registry
             ~\.cargo\git
             nsh-app\target
-          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock', 'rust-backend/Cargo.lock') }}
+          key: ${{ runner.os }}-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-nshapp-target-
 
@@ -296,7 +294,7 @@ jobs:
           retention-days: 14
 
   # web 目标不做：`nsh package --target web` 要把 app crate 编到 wasm32，而
-  # `cardmind-backend` 依赖 iroh（tokio networking）、rusqlite（bundled SQLite）
+  # 内核（原 `cardmind-backend`，现 `nsh-app/src/kernel/`）依赖 iroh（tokio networking）、rusqlite（bundled SQLite）
   # 与 tokio，整条链在 wasm 上编不过（实测 run 42255318234：`mio` 48 个 E0599/E0308）。
   # 除非后端另出 wasm 变体，否则本应用没有 web 构建。iOS/Android 同理留给发布工程
   # （需要签名材料与移动 SDK），见 docs/archive/handover-nsh-editor-2026-11-03.md。

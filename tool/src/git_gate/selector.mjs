@@ -36,7 +36,7 @@ export class TestIndex {
     this.rustTestTargets = rustTestTargets;
 
     // 引用 `api::`（FRB 导出层）的 Rust 测试 target 名。
-    // 由 `scanTestIndex` 读 `rust-backend/tests/**/*.rs` 内容派生。
+    // 由 `scanTestIndex` 读 `nsh-app/tests/**/*.rs` 内容派生。
     this.rustApiConsumers = rustApiConsumers;
   }
 }
@@ -132,11 +132,11 @@ function _isTsxSource(p) {
 }
 
 function _isRustTest(p) {
-  return p.startsWith('rust-backend/tests/') && p.endsWith('.rs');
+  return p.startsWith('nsh-app/tests/') && p.endsWith('.rs');
 }
 
 function _isRustSource(p) {
-  return p.startsWith('rust-backend/src/') && p.endsWith('.rs');
+  return p.startsWith('nsh-app/src/') && p.endsWith('.rs');
 }
 
 // 门禁/工具自身的 JS 源码（tool/**/*.mjs|.js）：改它只跑 docsLint，
@@ -145,7 +145,7 @@ function _isToolScript(p) {
   return p.startsWith('tool/') && (p.endsWith('.mjs') || p.endsWith('.js'));
 }
 
-// Cargo manifest（含 rust-backend/Cargo.toml、rust-backend/Cargo.lock）。
+// Cargo manifest（nsh-app/Cargo.toml 与 nsh-app/Cargo.lock 是仓库唯一一份）。
 // 按文件名匹配（Cargo 大小写不敏感；normalizePath 已保证反斜杠先归一化）。
 function _isManifest(p) {
   const lower = p.toLowerCase();
@@ -252,7 +252,7 @@ function _contribute(b, file, index) {
       break;
     case FileCategory.manifest: {
       // Cargo manifest fail-closed 为 Rust 全量（clippy + cargo test 全量）；
-      // endsWith 匹配覆盖 rust-backend/Cargo.toml 与 rust-backend/Cargo.lock。
+      // endsWith 匹配覆盖 nsh-app/Cargo.toml 与 nsh-app/Cargo.lock。
       b.add(Commands.clippy());
       b.add(Commands.rustFullTest());
       break;
@@ -352,7 +352,7 @@ function _relatedRustTargets(file, index) {
 }
 
 /**
- * 按 cargo 规则推导 `rust-backend/tests/` 路径是否为 test target；不是返回 null。
+ * 按 cargo 规则推导 `nsh-app/tests/` 路径是否为 test target；不是返回 null。
  *
  * cargo 规则：`tests/foo.rs` → target `foo`；`tests/foo/main.rs` →
  * target `foo`（目录名，文件名 `main` 不是 target）；`tests/<dir>/`
@@ -360,7 +360,7 @@ function _relatedRustTargets(file, index) {
  * 输入为仓库相对路径，本函数自行校验前缀与 `.rs` 后缀。
  */
 export function rustTestTargetName(path) {
-  const prefix = 'rust-backend/tests/';
+  const prefix = 'nsh-app/tests/';
   if (!path.startsWith(prefix) || !path.endsWith('.rs')) return null;
   const rest = path.substring(prefix.length);
   const slash = rest.indexOf('/');

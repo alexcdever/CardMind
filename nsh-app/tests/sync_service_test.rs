@@ -1,7 +1,7 @@
 mod common;
 
-use cardmind_backend::sync::SyncService;
 use common::temp_dir;
+use nsh_app_cardmind::kernel::sync::SyncService;
 
 /// 验证 SyncService 的序列化/反序列化逻辑
 ///

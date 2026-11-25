@@ -10,9 +10,9 @@ mod common;
 
 use std::collections::HashMap;
 
-use cardmind_backend::store::{NoteStore, PairedDeviceRow};
-use cardmind_backend::sync::{PairingTarget, SyncService};
 use common::{require_ipv4, temp_dir};
+use nsh_app_cardmind::kernel::store::{NoteStore, PairedDeviceRow};
+use nsh_app_cardmind::kernel::sync::{PairingTarget, SyncService};
 
 // ━━━ 配对辅助：入站授权的前提 ━━━
 

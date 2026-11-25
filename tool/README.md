@@ -3,8 +3,8 @@
 本目录保留工具入口：markdown 引用 lint、release Python 脚本与本地 Git 质量门禁。
 （Flutter 构建/质量链——build.dart、quality.dart、feature_test.dart、debug_pool、
 test_boundary_scanner——已随迁移 4.6 整删；Rust 边界扫描 crate
-`rust-backend/tool/boundary_scanner` 本次也随死代码清理移除，本目录只剩
-门禁与 lint。）
+`rust-backend/tool/boundary_scanner` 随死代码清理移除后，`rust-backend/` 整体也已于
+2026-11 并入 `nsh-app/`，本目录只剩门禁与 lint。）
 
 ## git_gate.mjs - 本地质量门禁 CLI（Node.js，不再需要 Dart SDK）
 
@@ -30,7 +30,7 @@ node tool/git_gate.mjs plan --files <path...>  # 按给定文件打印计划
 
 **suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
 
-**staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`rust-backend/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
+**staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`nsh-app/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
 
 ## lint/markdown_references_linter.mjs - 文档路径检查
 
@@ -43,7 +43,7 @@ POSIX 与 Windows 形态由自测覆盖。
 **检查两类引用**:
 
 - Markdown 链接（方括号文字 + 圆括号里的 .md 路径），相对所在文件解析
-- 行内代码路径：形如 `` `docs/product.md` ``、`` `rust-backend/src/` ``，相对仓库根解析（首段必须是仓库根下真实存在的条目）
+- 行内代码路径：形如 `` `docs/product.md` ``、`` `nsh-app/src/kernel/` ``，相对仓库根解析（首段必须是仓库根下真实存在的条目）
 
 **检查范围**: 扫描根下全部 `.md`，排除外部导入的工具/技能包目录以及
 `.worktrees/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
@@ -51,12 +51,12 @@ POSIX 与 Windows 形态由自测覆盖。
 在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
 
 **构建产物**: 只有确实位于已知构建输出目录**之下**的路径才跳过存在性判定，当前前缀为 `build/`、
-`.dart_tool/`、`rust-backend/target/`、`sync-verify/target/`、`nsh-app/target/`、`nsh-app/.nsh/`、
+`.dart_tool/`、`sync-verify/target/`、`nsh-app/target/`、`nsh-app/.nsh/`、
 `android/build/`、`android/app/build/`、`android/app/src/main/jniLibs/`、`android/.gradle/`、
 `macos/build/`、`linux/build/`、`windows/build/`（全新 checkout 中本就不存在）。判定是前缀匹配，
 段名巧合的路径仍照常判定。
 
-**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、NSH 迁移期的两个未跟踪旧探针
+**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、2026-11 并入 `nsh-app/` 的整个 `rust-backend/` 前缀、NSH 迁移期的两个未跟踪旧探针
 （`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`）、旧 WebView 前端、平台工程、
 本地 git 元数据与历史归档，文档仍会作为历史记录引用它们；这些前缀下的路径不判存在性（列表见
 `deletedHistoryPrefixes`，前缀匹配）。**这只豁免已删除对象**：扫描范围不变，名字相近但并非该前缀的

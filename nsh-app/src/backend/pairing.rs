@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cardmind_backend::sync::{PairingRequest, PairingTarget};
+use crate::kernel::sync::{PairingRequest, PairingTarget};
 use nsh_core::prelude::*;
 
 use crate::backend::dto::{
@@ -295,13 +295,13 @@ impl BackendPairing {
     ///
     /// 返回保存路径；用户取消返回空串（约定值，非错误）。
     pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
-        cardmind_backend::qr::save_pairing_qr_png(credential)
+        crate::kernel::qr::save_pairing_qr_png(credential)
     }
 
     /// 配对二维码 — 发起方：弹系统打开对话框选图，识别二维码返回 `cm1.` 凭证。
     ///
     /// 返回凭证文本；用户取消返回空串；识别失败返回可读错误。
     pub fn decode_pairing_qr_file() -> Result<String, String> {
-        cardmind_backend::qr::decode_pairing_qr_file()
+        crate::kernel::qr::decode_pairing_qr_file()
     }
 }

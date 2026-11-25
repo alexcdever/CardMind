@@ -32,7 +32,7 @@
 
 - 新功能和 bugfix 必须覆盖成功路径与失败路径
 - TSX 前端测试放在 `nsh-app/`（根级 `*_test.ts`）与 `nsh-app/web/src/`
-- Rust 集成测试放在 `rust-backend/tests/`
+- Rust 集成测试放在 `nsh-app/tests/`
 - 最终验证命令应覆盖受影响范围，常见命令包括：`npx tsx --test`（在 `nsh-app/`）、`cargo test`、`node tool/git_gate.mjs plan --staged`
 - 若未采用严格的 `Red -> Green -> Blue` 顺序，最终交付时应明确说明原因、补充的验证手段以及仍然存在的风险
 

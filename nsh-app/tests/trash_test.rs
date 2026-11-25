@@ -7,10 +7,10 @@
 
 mod common;
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{NoteCrdt, SyncService};
 use chrono::{Duration, Utc};
 use common::temp_dir;
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{NoteCrdt, SyncService};
 use rusqlite::Connection;
 use std::time::Duration as StdDuration;
 

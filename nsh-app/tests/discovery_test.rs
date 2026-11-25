@@ -34,8 +34,8 @@ mod common;
 
 use std::time::{Duration, Instant};
 
-use cardmind_backend::discovery::{DiscoveryService, PeerInfo};
 use common::{require_ipv4, rt};
+use nsh_app_cardmind::kernel::discovery::{DiscoveryService, PeerInfo};
 
 /// 本文件 mDNS 用例的串行闸（见模块注释「进程内串行」）。
 fn mdns_gate() -> &'static tokio::sync::Mutex<()> {
@@ -59,16 +59,13 @@ fn unique_device_id(tag: &str) -> String {
 /// 不会真的出网），与 `SyncService::local_addrs()` 的信息来源同类。
 fn local_ipv4_addrs() -> Vec<String> {
     let mut out = Vec::new();
-    if let Ok(sock) = std::net::UdpSocket::bind("0.0.0.0:0") {
-        if sock.connect("192.0.2.1:9").is_ok() {
-            if let Ok(addr) = sock.local_addr() {
-                if let std::net::IpAddr::V4(v4) = addr.ip() {
-                    if !v4.is_loopback() {
-                        out.push(format!("{v4}:0"));
-                    }
-                }
-            }
-        }
+    if let Ok(sock) = std::net::UdpSocket::bind("0.0.0.0:0")
+        && sock.connect("192.0.2.1:9").is_ok()
+        && let Ok(addr) = sock.local_addr()
+        && let std::net::IpAddr::V4(v4) = addr.ip()
+        && !v4.is_loopback()
+    {
+        out.push(format!("{v4}:0"));
     }
     out
 }

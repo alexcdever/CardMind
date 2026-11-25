@@ -4,12 +4,20 @@ on:
   push:
     branches: [ main, dev ]
     paths:
-      - 'rust-backend/**'
+      - 'nsh-app/src/**'
+      - 'nsh-app/tests/**'
+      - 'nsh-app/examples/**'
+      - 'nsh-app/Cargo.toml'
+      - 'nsh-app/Cargo.lock'
       - '.github/workflows/rust_quality.yml'
   pull_request:
     branches: [ main, dev ]
     paths:
-      - 'rust-backend/**'
+      - 'nsh-app/src/**'
+      - 'nsh-app/tests/**'
+      - 'nsh-app/examples/**'
+      - 'nsh-app/Cargo.toml'
+      - 'nsh-app/Cargo.lock'
       - '.github/workflows/rust_quality.yml'
 
 env:
@@ -27,7 +35,7 @@ jobs:
 
       - name: Install system dependencies
         # wayland-sys（rfd→ashpd→wayland-client）在 Ubuntu CI 上要系统 libwayland-dev；
-        # ubuntu-26.04 不预装。rust-backend 与 nsh-app 同一依赖链。
+        # ubuntu-26.04 不预装。nsh-app 单 crate 的内核依赖链（rfd→ashpd→wayland-client）。
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
@@ -46,7 +54,7 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            rust-backend/target/
+            nsh-app/target/
           key: ${{ runner.os }}-cargo-quality-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-quality-
@@ -54,13 +62,13 @@ jobs:
       - name: Check code formatting
         # 与本地门禁 tool/src/git_gate/command.mjs 的 Commands.formatRust() 同源。
         run: |
-          cd rust-backend
+          cd nsh-app
           cargo fmt --all -- --check
 
       - name: Run cargo clippy
-        # 与本地门禁 Commands.clippy() 逐字同源（含 --workspace）；rust-backend 现为单 crate workspace，--workspace 等价只跑根 crate。
+        # 与本地门禁 Commands.clippy() 逐字同源（含 --workspace）；nsh-app 是单 crate workspace（空 [workspace] 表），--workspace 等价只跑根 crate nsh-app-cardmind。
         run: |
-          cd rust-backend
+          cd nsh-app
           cargo clippy --all-targets --all-features --workspace -- -D warnings
 
       - name: Run cargo test
@@ -68,14 +76,14 @@ jobs:
           # 无 IPv4 时配对/连接用例必须判失败，不得在 CI 上假绿。
           CARDMIND_REQUIRE_NETWORK_TESTS: '1'
         run: |
-          cd rust-backend
+          cd nsh-app
           # 与本地门禁口径一致：串行跑测试二进制，避免 iroh/netmon 全局资源竞争。
           cargo test --all-features --jobs 1
 
       - name: Security audit
         run: |
           cargo install cargo-audit
-          cd rust-backend
+          cd nsh-app
           cargo audit
         continue-on-error: true
 
@@ -101,7 +109,7 @@ jobs:
 
       - name: Install system dependencies
         # wayland-sys（rfd→ashpd→wayland-client）在 Ubuntu CI 上要系统 libwayland-dev；
-        # ubuntu-26.04 不预装。rust-backend 与 nsh-app 同一依赖链。
+        # ubuntu-26.04 不预装。nsh-app 单 crate 的内核依赖链（rfd→ashpd→wayland-client）。
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
@@ -119,7 +127,7 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            rust-backend/target/
+            nsh-app/target/
           key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-coverage-
@@ -141,13 +149,12 @@ jobs:
         continue-on-error: true
 
       - name: Generate Rust LCOV report
-        # --packages cardmind-backend 限定根包（rust-backend 现为单 crate
-        # workspace，本参数保持与历史一致）。产出 rust-backend/lcov.info。
+        # --packages nsh-app-cardmind 限定根包（nsh-app 是单 crate workspace，
+        # 本参数保持与历史一致）。产出 nsh-app/lcov.info。
         run: |
-          cd rust-backend
-          cargo tarpaulin --packages cardmind-backend \
+          cd nsh-app
+          cargo tarpaulin --packages nsh-app-cardmind \
             --out Lcov --output-dir . \
-            --exclude-files src/frb_generated.rs \
             --exclude-files 'tool/**'
         continue-on-error: true
 
@@ -156,6 +163,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rust-lcov
-          path: rust-backend/lcov.info
+          path: nsh-app/lcov.info
           retention-days: 7
           if-no-files-found: ignore

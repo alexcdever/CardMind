@@ -2,13 +2,13 @@
 
 mod common;
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{
-    decode_device_name_frame, decode_pairing_request, decode_pairing_response,
-    encode_pairing_request, pairing_identity_matches, validate_pairing_request_identity,
-    PairingRequest, PairingResponse, SyncService,
-};
 use common::rt;
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{
+    PairingRequest, PairingResponse, SyncService, decode_device_name_frame, decode_pairing_request,
+    decode_pairing_response, encode_pairing_request, pairing_identity_matches,
+    validate_pairing_request_identity,
+};
 
 fn valid_request(device_id: &str) -> PairingRequest {
     PairingRequest {
@@ -86,7 +86,7 @@ fn pairing_identity_must_match_transport() {
             ips: vec![],
             nonce: receiver.session_nonce_hex(),
         };
-        let target = cardmind_backend::sync::PairingTarget {
+        let target = nsh_app_cardmind::kernel::sync::PairingTarget {
             device_id: receiver.device_id(),
             ips: receiver.local_addrs(),
             nonce: request.nonce.clone(),
@@ -104,11 +104,13 @@ fn pairing_identity_must_match_transport() {
             "authenticated-remote",
             "authenticated-remote"
         ));
-        assert!(!validate_pairing_request_identity(
-            "authenticated-remote",
-            &valid_request("spoofed-identity")
-        )
-        .is_ok());
+        assert!(
+            !validate_pairing_request_identity(
+                "authenticated-remote",
+                &valid_request("spoofed-identity")
+            )
+            .is_ok()
+        );
     });
 }
 

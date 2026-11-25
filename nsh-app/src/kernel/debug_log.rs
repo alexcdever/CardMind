@@ -11,7 +11,7 @@
 //! - **debug 开关**：`LogEvent::verbose` 事件默认不输出，`SyncService::set_log_verbose`
 //!   打开后输出更多细节（如候选设备列表）。
 
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{Arc, Mutex};
 
 /// 单条结构化日志事件。

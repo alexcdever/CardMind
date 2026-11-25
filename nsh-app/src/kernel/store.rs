@@ -4,7 +4,7 @@ use rusqlite::Connection;
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 
-use crate::sync::NoteCrdt;
+use crate::kernel::sync::NoteCrdt;
 
 /// SQLite 读投影 — 缓存 NoteCrdt 的扁平化视图
 ///

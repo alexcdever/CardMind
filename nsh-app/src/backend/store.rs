@@ -1,5 +1,5 @@
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::NoteCrdt;
+use crate::kernel::store::NoteStore;
+use crate::kernel::sync::NoteCrdt;
 use nsh_core::prelude::*;
 
 use crate::backend::globals::{STORE, ensure_sync, store};

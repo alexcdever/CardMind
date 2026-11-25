@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-/// `rust-backend/tests` 目录（编译期已知 crate 根）。
+/// `nsh-app/tests` 目录（编译期已知 crate 根）。
 fn tests_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests")
 }
@@ -104,11 +104,11 @@ fn strip_fn_modifiers(mut line: &str) -> &str {
             "const",
             "default",
         ] {
-            if let Some(rest) = line.strip_prefix(kw) {
-                if rest.starts_with(char::is_whitespace) {
-                    line = rest;
-                    break;
-                }
+            if let Some(rest) = line.strip_prefix(kw)
+                && rest.starts_with(char::is_whitespace)
+            {
+                line = rest;
+                break;
             }
         }
         if line.len() == before {

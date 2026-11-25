@@ -77,19 +77,8 @@ export function snapshotSources(repoRoot, dirs, suffix) {
   return result;
 }
 
-/** 生成文件快照（FRB codegen 已随 lib/ 整删移除；保留 rust-backend 的
- * frb_generated.rs 观测——若它仍存在则纳入快照，防止手工漂移）。 */
-export function snapshotGeneratedFiles(repoRoot) {
-  const result = new Map();
-  const frbGenerated = path.join(repoRoot, 'rust-backend', 'src', 'frb_generated.rs');
-  if (fs.existsSync(frbGenerated)) {
-    result.set(
-      'rust-backend/src/frb_generated.rs',
-      normalizedContentHash(fs.readFileSync(frbGenerated, 'utf8')),
-    );
-  }
-  return result;
-}
+/** 生成文件快照——FRB codegen 已随 lib/ 整删，`frb_generated.rs` 不存在，
+ * 故不再有生成物需要纳入快照（原实现只观测该文件，已删除）。 */
 
 function _relativePosix(repoRoot, p) {
   const abs = p.replaceAll('\\', '/');
@@ -111,24 +100,27 @@ export class Formatter {
   }
 
   async formatRust() {
-    if (!fs.existsSync(path.join(this.repoRoot, 'rust-backend'))) {
+    if (!fs.existsSync(path.join(this.repoRoot, 'nsh-app'))) {
       return new FormatOutcome({ changedPaths: [] });
     }
-    const before = snapshotSources(this.repoRoot, ['rust-backend'], '.rs');
+    // 快照必须传窄目录：`['nsh-app']` 会递归遍历 node_modules/ 与 .nsh/，
+    // 既慢又会把生成物算成「formatter 改了文件」。
+    const rustDirs = ['nsh-app/src', 'nsh-app/tests', 'nsh-app/examples'];
+    const before = snapshotSources(this.repoRoot, rustDirs, '.rs');
     const result = await this.runner('cargo', ['fmt', '--all'], {
-      workingDirectory: `${this.repoRoot}/rust-backend`,
+      workingDirectory: `${this.repoRoot}/nsh-app`,
     });
     if (result.exitCode !== 0) {
       return new FormatOutcome({
         changedPaths: [],
         error: `cargo fmt failed (exit ${result.exitCode}): ${result.stderr}`,
-        commandsRun: ['cargo fmt --all (in rust-backend)'],
+        commandsRun: ['cargo fmt --all (in nsh-app)'],
       });
     }
-    const after = snapshotSources(this.repoRoot, ['rust-backend'], '.rs');
+    const after = snapshotSources(this.repoRoot, rustDirs, '.rs');
     return new FormatOutcome({
       changedPaths: _changed(before, after),
-      commandsRun: ['cargo fmt --all (in rust-backend)'],
+      commandsRun: ['cargo fmt --all (in nsh-app)'],
     });
   }
 

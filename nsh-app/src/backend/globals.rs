@@ -1,6 +1,6 @@
-use cardmind_backend::discovery::DiscoveryService;
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::SyncService;
+use crate::kernel::discovery::DiscoveryService;
+use crate::kernel::store::NoteStore;
+use crate::kernel::sync::SyncService;
 use std::sync::OnceLock;
 
 use crate::backend::store::BackendStore;

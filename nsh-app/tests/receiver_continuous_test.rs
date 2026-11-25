@@ -15,9 +15,9 @@ mod common;
 
 use std::time::{Duration, Instant};
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{PairingTarget, SyncService};
 use common::{pair_up, rt};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{PairingTarget, SyncService};
 
 /// 接收器预热事件等待上限（无内置超时，此处给出有界失败窗口）。
 const RECEIVER_WARMUP_TIMEOUT: Duration = Duration::from_secs(5);

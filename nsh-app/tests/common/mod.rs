@@ -2,8 +2,8 @@
 //!
 //! 并非每个测试文件都用全部 helper，未使用的标 `#[allow(dead_code)]`。
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{PairingRequest, PairingTarget, SyncService};
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::{PairingRequest, PairingTarget, SyncService};
 
 /// 每次调用返回全新空目录：`{tmp}/cardmind-{label}-{pid}-{seq}`，已存在则先清空。
 /// `seq` 为进程内单调递增计数，保证同一测试二进制内并行用例同 label 调用互不覆盖。

@@ -19,11 +19,11 @@
 
 1. **默认只做局域网同步（零配置）**。没有 relay 配置时，iroh 连接模式为 `RelayMode::Disabled`：同一局域网内直连同步，跨网段不连接。
 2. **全对等（mesh）**。每对设备间都可直连；无主设备、无枢纽。个人设备数量少（2-3 台），mesh 复杂度可忽略；星形拓扑有单点停摆风险（主设备关机=全网断）。
-3. **跨网段靠自定义 relay 显式开启**。用户在自己的数据目录写入 relay URL（`relay.txt`）时，连接模式切到 `RelayMode::Custom`，此时才可能经 relay 建立跨网段连接；URL 解析失败会显式报错，不静默回退。relay 只做连接握手与流量中转，不存储、不读取笔记内容。解析逻辑见 `rust-backend/src/sync.rs` 的 `load_relay_mode`。
+3. **跨网段靠自定义 relay 显式开启**。用户在自己的数据目录写入 relay URL（`relay.txt`）时，连接模式切到 `RelayMode::Custom`，此时才可能经 relay 建立跨网段连接；URL 解析失败会显式报错，不静默回退。relay 只做连接握手与流量中转，不存储、不读取笔记内容。解析逻辑见 `nsh-app/src/kernel/sync.rs` 的 `load_relay_mode`。
 
 ### 同步触发
 
-4. **自动后台同步**：编辑保存即推送；后台周期性拉取（实现参数 `SYNC_POLL_INTERVAL_SECS = 60`，见 `rust-backend/src/sync.rs`，同网段与跨网段同一周期；能否连通取决于是否同网段或是否配置了 relay）。
+4. **自动后台同步**：编辑保存即推送；后台周期性拉取（实现参数 `SYNC_POLL_INTERVAL_SECS = 60`，见 `nsh-app/src/kernel/sync.rs`，同网段与跨网段同一周期；能否连通取决于是否同网段或是否配置了 relay）。
 5. **按需拨号**：推送时拨号连接，拉取按周期拨号；不维持常驻长连接（移动端电池杀手）。
 6. **移动端仅 WiFi 自动同步**；蜂窝网络下暂停，回到 WiFi 恢复。唯一例外：用户手动点"立即同步"时任何网络都执行。
 

@@ -14,9 +14,9 @@
 
 mod common;
 
-use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::SyncService;
 use common::rt;
+use nsh_app_cardmind::kernel::store::NoteStore;
+use nsh_app_cardmind::kernel::sync::SyncService;
 
 /// close() 把运行中的接收器停掉（先 stop_receiver），再关 endpoint。
 #[test]

@@ -1,4 +1,4 @@
-use cardmind_backend::sync::SYNC_POLL_INTERVAL_SECS;
+use crate::kernel::sync::SYNC_POLL_INTERVAL_SECS;
 use nsh_core::prelude::*;
 
 use crate::backend::dto::{DevicePushResultDto, SyncCycleResultDto};

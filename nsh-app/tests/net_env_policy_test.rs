@@ -6,7 +6,7 @@
 
 mod common;
 
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// 策略纯函数两腿：仅 `Some("1")` 为 fatal，None/"0"/"" 均非 fatal。
 #[test]
