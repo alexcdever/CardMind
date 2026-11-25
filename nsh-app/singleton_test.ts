@@ -3,7 +3,7 @@
 // 1.7（全局单例改造）：`#[module]` 的函数不能带 receiver，状态必须放全局——
 //   ① `nsh-app/src/lib.rs` 有 `static STORE: OnceLock<NoteStore>` 与
 //      `static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>>`；
-//   ② `nsh-app/Cargo.toml` 以 path 依赖引入 `cardmind-backend`；
+//   ② `nsh-app/Cargo.toml` 不再有 `cardmind-backend` path 依赖（2026-11 内核并入本 crate）；
 //   ③ `SyncService` 的 `&mut self` 已放宽为 `&self`（只剩 `Drop` 的 `fn drop(&mut self)`）；
 //   ④ `api.rs` 已随 P1 死代码清理删除（不再有 `svc: &mut SyncService`）。
 // 1.4（Backend.Store 模块）：`#[module]` 导出 store 的 4 个函数（nsh 的模块对象名
