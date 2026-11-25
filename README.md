@@ -76,8 +76,7 @@ node tool/git_gate.mjs plan --staged
 - `docs/product-decisions.md` — 产品决策日志
 - `docs/sync-network.md` — 同步网络设计
 - `docs/goal.md` — 当前任务的正式行为与验收标准（设备连接可用性检查）
-- `docs/migration-nsh.md` / `docs/migration-nsh-construction.md` / `docs/migration-nsh-verification.md` — NSH 迁移计划、施工与验证
-- `docs/progress-nsh-editor-2026-11-03.md` / `docs/handover-nsh-editor-2026-11-03.md` — NSH 0.3.0 编辑器重构进度与换设备交接
+- `docs/archive/` — 已归档的历史文档（NSH 迁移计划/施工/验证、NSH 编辑器重构进度与换设备交接）
 - `docs/adr/` — 架构决策记录
 - `docs/research/` — 研究资料
 - `docs/testing/` — 集成测试说明

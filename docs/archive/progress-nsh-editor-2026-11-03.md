@@ -1,7 +1,7 @@
 # 进度文档：用 NSH 0.3.0 重构 CardMind 编辑器（2026-11-03）
 
 > 状态：**核心重构已完成并合并**。分支 `migration/nsh`；重构合并提交 `92e622b2`（本进度/交接文档提交在其之上）。
-> 交接环境与后续步骤见 [`docs/handover-nsh-editor-2026-11-03.md`](handover-nsh-editor-2026-11-03.md)。
+> 交接环境与后续步骤见 [`docs/archive/handover-nsh-editor-2026-11-03.md`](handover-nsh-editor-2026-11-03.md)。
 > 注：门禁链已于 gate-js 分支从 Dart 移植为 Node.js（`tool/git_gate.mjs` 等 `.mjs`）；本文中 backticked `tool/**.mjs` 路径为移植后文件名，`dart run …`/`dart format`/`dart analyze` 命令行为当时（Dart 版）实测记录，对应新命令见 `tool/README.md`。
 
 ## 1. 目标
@@ -88,7 +88,7 @@
 - 调研总报告与分报告：`docs/research/nsh-editor/`（已提交）
 - P2 探针与截图：`spike/nsh-editor-md-probe/`（已提交）
 - 技术栈/命令：`AGENTS.md`（已更新为 nsh 0.3.0、无 WebView/Tiptap）
-- 交接：`docs/handover-nsh-editor-2026-11-03.md`
+- 交接：`docs/archive/handover-nsh-editor-2026-11-03.md`
 
 ## 8. P4 补强（本机执行，worktree `p4-hardening`）
 
@@ -97,7 +97,7 @@
 | AC1 Each key 重建判别测试 | ✅ | `editor_page.test.tsx` 新增「Each key 判别——A→B→A 每次切换都新建 Editor 实例」：`EditorHarness.recordEditorRef` 对 ref 回调收到的**新实例**自增并写 `test.editorMountCount`；A→B→A 计数 1→2→3，即每次切换得到新 Editor 实例（而非同一实例 `setValue` 重载；探针：同一实例 `setValue("BBBB")` 计数仍 1）。**重要实测**：task 建议的 `key={() => 0}` / `key="index"` 变异在 0.3.0 下**不改变行为**（Each 被包在响应式 thunk 内，选中变化即整段重建，key 不参与）——变异后测试仍绿。判别力证据：同一实例 `setValue("BBBB")` 后计数仍 1（计数由新挂载驱动）；把 `DesktopEditorPane` 退化为固定首篇 id（不随选中切换）→ 测试在 `waitUntil(count==="2")` 处超时红。 |
 | AC2 移动新建按钮行为测试 | ✅ | 新增 `NoteListHarness.tsx`（NavStack+假 NoteListSource，editor 路由渲染 `testID=editor-route` 桩页并显示 `editor noteId: {noteId}`）+ `note_list_behavior.test.tsx`（390×844 点 `label:新建笔记` → `app.texts()` 精确含 `editor noteId: new`）。变异（去 onPress）→ 按钮 disabled、`app.enabled` 断言红。 |
 | AC3 5 万字预览性能 | ✅（headless 口径） | 50148 字 Markdown，n=20 墙钟采样：**min=2828ms p50=4661ms p95=8780ms max=8788ms**（Apple M2，headless）。headless 下 `id:preview` 不可选，用首个 wikilink chip `id:wikilink-note-1` 作「渲染完成」代理（只覆盖首屏）。headless 数字只反映 JS 端解析/布局，不代表原生 TextView。**口径注意**：单次数字随整机负载波动显著（独立审查两次实测 p50 5275–5847ms、p95 6481–13101ms）；样本数自适应（budget 内 target 20，下限 3 样本）。真机复测：`nsh test --filter "5 万字" --target windows|macos|ios|android`。 |
-| AC4 Windows IME/5 万字清单 | ⏳ 待 Windows 真机（**旧 WebView 时代已验过；macOS 已做预验证**） | `docs/testing/nsh-p4-windows-ime-checklist.md`：IME 组合→上屏→光标、5 万字输入/滚动/预览、剪贴板，附 PowerShell 探针脚本。**历史证据**：`docs/migration-nsh-verification.md` §V8 在 WebView+Tiptap 上实测中文 IME 通过（CDP `imeSetComposition`，组合→上屏→光标/markdown 一致）；但 P2 已换成 NSH 0.3.0 原生 `Editor`（平台 TSF sink），输入栈不同，V8 不能替代——原生 Editor 的 IME 机制具备（`on_composition_change`）但仍需 Windows 真机按本清单复测。**macOS 预验证（清单 §F）**：`nsh test --target macos` 真窗口 23/28（5 条失败均为 `app.back`/`app.spanStyle`/chip testID 等真窗口 API 限制，非产品缺陷）；CJK 输入与系统剪贴板粘贴可用、复制回剪贴板未验证；5 万字真窗口 p50=2749ms（n=20），压力渲染 frame≈500–700ms/over≈50–60%/mem≈250MB。真实 IME 组合仍无法自动（无 composition step + macOS 辅助功能未授权）。 |
+| AC4 Windows IME/5 万字清单 | ⏳ 待 Windows 真机（**旧 WebView 时代已验过；macOS 已做预验证**） | `docs/testing/nsh-p4-windows-ime-checklist.md`：IME 组合→上屏→光标、5 万字输入/滚动/预览、剪贴板，附 PowerShell 探针脚本。**历史证据**：`docs/archive/migration-nsh-verification.md` §V8 在 WebView+Tiptap 上实测中文 IME 通过（CDP `imeSetComposition`，组合→上屏→光标/markdown 一致）；但 P2 已换成 NSH 0.3.0 原生 `Editor`（平台 TSF sink），输入栈不同，V8 不能替代——原生 Editor 的 IME 机制具备（`on_composition_change`）但仍需 Windows 真机按本清单复测。**macOS 预验证（清单 §F）**：`nsh test --target macos` 真窗口 23/28（5 条失败均为 `app.back`/`app.spanStyle`/chip testID 等真窗口 API 限制，非产品缺陷）；CJK 输入与系统剪贴板粘贴可用、复制回剪贴板未验证；5 万字真窗口 p50=2749ms（n=20），压力渲染 frame≈500–700ms/over≈50–60%/mem≈250MB。真实 IME 组合仍无法自动（无 composition step + macOS 辅助功能未授权）。 |
 | AC5 Android/iOS 软键盘/选区清单 | ⏳ 待真机 | `docs/testing/nsh-p4-mobile-input-checklist.md`：软键盘弹收、选区手柄、长按菜单、<960 布局可用性。 |
 | AC6 `nsh package --target windows` | ⚠️ macOS 产出不可用伪 `.exe` | `cd nsh-app && CARGO_TARGET_DIR=<dir> nsh package . --target windows` 在 macOS 上 **exit 0、约 4m02s 完成**，产出 `nsh-app/.nsh/out/cardmind/cardmind.exe`（+ `cardmind.zip`）；但 `file` 显示它是 **Mach-O 64-bit executable arm64**（macOS 可执行），运行只打印 `nsh-windows-app is the executable of packaged Windows apps; build it on Windows` 并 exit 1。机制：nsh-cli 在 `--target windows` 且无交叉 toolchain 时回落到**宿主 toolchain** 构建 `nsh-windows-app`；该 crate 在非 Windows 上是 stub，`windows.rs` 直接把 host 二进制复制成 `.exe`、不校验 PE。**结论：macOS 会静默产出不可用的伪 `.exe`（exit 0 但不可装/不可运行），Windows 打包必须在 Windows 上执行** `cd nsh-app && nsh package . --target windows`（`nsh.json` id=com.cardmind.nsh 已就位，签名按打包器补）。 |
 | AC7 本小节 | ✅ | 本表。 |
@@ -147,7 +147,7 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
   - `module_test.ts`（连带修正）：`await Backend.deviceId(` → `await BackendStore.dataDir(`（意图不变：TSX 侧是 `await` 的模块调用）；`native.d.ts` 的 `deviceId` 导出断言保留（Rust 侧仍导出）；
   - `singleton_test.ts`（连带修正）：「结果渲染进 Text（`条|Store|笔记ID|同步ID`）」→「启动串起 STORE+SYNC 单例：`await BackendStore.syncDeviceId()` + `await BackendSync.startReceiver()` + 无 `BackendSync.close(`」（意图不变：两个全局单例都被 TSX 真调用）。
 - **`rust-backend/tests/device_name_test.rs`**：`use cardmind_backend::sync::{…}` 补 `detect_hostname`（§8「P4 已知环境限制 2」修复落地，macOS `cargo test` 可编译）。
-- **`docs/migration-nsh-construction.md`**：Phase 4 增 4.7 行，注明 Phase 1 的「App.tsx 里 Backend* 调用不能删」证据已由本项取代（验收证据下沉到测试断言）。
+- **`docs/archive/migration-nsh-construction.md`**：Phase 4 增 4.7 行，注明 Phase 1 的「App.tsx 里 Backend* 调用不能删」证据已由本项取代（验收证据下沉到测试断言）。
 
 ### 验证（本机实测，共享 `CARGO_TARGET_DIR`）
 
@@ -198,8 +198,8 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
   Flutter 的 `Semantics(identifier:)`/`ValueKey` 内容整体替换为 NSH/TSX 锚点——`testID` ↔ 选择器 `id:`、
   `accessibilityLabel` ↔ `label:`、`role`/`accessibilityState` 承载语义与状态、`text:`/`role:`/`view:`
   与 ` >> `/`nth=` 链式选择器，测试入口 `EditorHarness.tsx`/`NoteListHarness.tsx` + `nsh test`。
-  引用同步更新：`AGENTS.md` 文档地图、`docs/migration-nsh.md` 的设计基线行。
-- `docs/migration-nsh-construction.md`：WebView 时代的三项标「✅ 已完成（已被取代）」——`B.3`（R10 跨 WebView
+  引用同步更新：`AGENTS.md` 文档地图、`docs/archive/migration-nsh.md` 的设计基线行。
+- `docs/archive/migration-nsh-construction.md`：WebView 时代的三项标「✅ 已完成（已被取代）」——`B.3`（R10 跨 WebView
   焦点/快捷键）、`G3.1`（WebView 真窗口 IME）、`G3.4`（WebView2 性能基线），证据统一写明
   「WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`，见 progress P2–P4」。**真机项 4.1 / G4.1 /
   B.1 / B.2 保持 ⛔ 阻塞**，未冒充通过。
@@ -616,7 +616,7 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 
 ### 附带文案修复（settings_page，唯一有意改动）
 
-按 `docs/handover-nsh-editor-2026-11-03.md` §6 第 10 条：NSH 当前 `debug_log` 只输出进程 stderr + tracing，**无文件落盘**；旧文案「日志写入应用支持目录 logs/cardmind.log」描述的是已删除的 Flutter 版行为。两处修正：
+按 `docs/archive/handover-nsh-editor-2026-11-03.md` §6 第 10 条：NSH 当前 `debug_log` 只输出进程 stderr + tracing，**无文件落盘**；旧文案「日志写入应用支持目录 logs/cardmind.log」描述的是已删除的 Flutter 版行为。两处修正：
 
 - `settings_page/state.ts` `logDirNote` → `"应用日志仅输出到进程 stderr（tracing），暂无文件落盘"`
 - `settings_page.tsx` 日志区块说明行 → `「应用日志暂无文件落盘，排查时查看进程 stderr 的 [cardmind:log] 行」`
@@ -886,7 +886,7 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 建 `.gitattributes` 并把全部文本文件归一为 LF：
 
 - **`.gitattributes`**：`* text=auto` 按内容识别文本、提交归一为 LF；`*.db/loro/key/otf/ttf/woff(2)/png/jpe?g/gif/ico/icns/webp/pdf/zip/gz/jar` 显式 `binary`，防止 `text=auto` 漏判（`data/cardmind.db` 实测 `i/none` 未被自动识别）。仓库无 `bat`/`cmd`/`iss` 等必须 CRLF 的文件，**不设 `eol=crlf` 例外**（初稿曾给 `*.iss` 留 `eol=crlf`，会留一个 `w/crlf`，去掉后归零；`tool/installer/cardmind.iss` 为 Inno Setup 脚本，LF 下同样合法）。
-- **归一**：`git add --renormalize .` 处理 16 个文件 = 9 个 `w/crlf`（`.gitignore`、`AGENTS.md`、`docs/migration-nsh{,-construction,-verification}.md`、`docs/standards/spec-lifecycle.md`、`.workflow/update-download-install/executor-report.md`、`nsh-app/Cargo.toml`、`tool/src/git_gate/runner.mjs`）+ 7 个 `w/mixed`（`CLAUDE.md`、`nsh-app/devices_page{.tsx,/constants.ts,/pair_sheets.tsx,/sections.tsx,/state.ts,/types.ts}`）。7 个 mixed 文件逐字节核对只有 `\r\n`+`\n`、无裸 `\r`，归一即纯行尾变化。
+- **归一**：`git add --renormalize .` 处理 16 个文件 = 9 个 `w/crlf`（`.gitignore`、`AGENTS.md`、`docs/archive/migration-nsh{,-construction,-verification}.md`、`docs/standards/spec-lifecycle.md`、`.workflow/update-download-install/executor-report.md`、`nsh-app/Cargo.toml`、`tool/src/git_gate/runner.mjs`）+ 7 个 `w/mixed`（`CLAUDE.md`、`nsh-app/devices_page{.tsx,/constants.ts,/pair_sheets.tsx,/sections.tsx,/state.ts,/types.ts}`）。7 个 mixed 文件逐字节核对只有 `\r\n`+`\n`、无裸 `\r`，归一即纯行尾变化。
 
 ### 关键验证
 
@@ -1222,7 +1222,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `nsh-app/editor_text.ts` | 新增 `noteLinkUrl(id)`（源码/WYSIWYG 两条插入路径共用，`wikilinkText` 复用它）；`noteIdFromLinkUrl` 注释改为生产在用 |
 | `nsh-app/EditorHarness.tsx` | `f9` 探针：`nodeSize`/`firstNoteLinkRange` 算文档位后 `setTextSelection` 到第一条 `cardmind://note/` 链接（等价按下链接的整段选中） |
 | `nsh-app/editor_page.test.tsx` | 31→36 条：WYSIWYG 候选（多字符触发、前缀更新、删除/Escape/关闭）、点选插入 link mark + 保存标准 Markdown、方向键高亮 + Enter 接受、桌面注入 `onNavigateNote` 切选中、未注入时默认 `openEditor` push；文件头注释更新 |
-| 文档 | 本节；`AGENTS.md` 当前状态/结构/文档地图；`docs/handover-nsh-editor-2026-11-03.md` §6 第 7/8/10 条与后续工作；`docs/standards/nsh-automation-anchors.md` RichEditor 段（suggestion 键位、f6 会结束建议、f9 链接探针、插件顺序） |
+| 文档 | 本节；`AGENTS.md` 当前状态/结构/文档地图；`docs/archive/handover-nsh-editor-2026-11-03.md` §6 第 7/8/10 条与后续工作；`docs/standards/nsh-automation-anchors.md` RichEditor 段（suggestion 键位、f6 会结束建议、f9 链接探针、插件顺序） |
 
 ### 0.4.0 `suggestion` 实测结论（写进后续轮次的 API 依据）
 
@@ -1487,7 +1487,7 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 - **`nsh-quality`（ubuntu-latest）**：系统依赖（`build-essential pkg-config libssl-dev cmake`）→ Node 22 + pnpm 12.16.1 + Rust stable + nsh 0.4.0 → `pnpm install --config.strict-dep-builds=false`（**不用** `--frozen-lockfile`/`cache: pnpm`：pnpm-lock.yaml 未提交）→ `npx tsx --test "*_test.ts"` → `nsh check .` → `nsh test --filter "editor:"` + `nsh test --filter "note:"`（**绝不跑无 filter 的 `nsh test`**：`coexist_notes_probe.rs › reads_fixture_db` 依赖 Windows APPDATA，基线既有必挂；两条 filter 串行、共享 target 缓存不重编）。
 - **`package-{linux,macos,windows,web}`**：各自 runner（`ubuntu-latest`/`macos-14`/`windows-latest`/`ubuntu-latest`）装 Rust + nsh CLI → `nsh package . --target <t>` → artifact（`.nsh/out/*.tar.gz`、macOS 先 `tar -czf` 再打 `.app` 目录保权限、`.nsh/out/*.zip`、web 静态目录）。**`if:` 只在 push 到 main / tag `v*` / dispatch 跑**，PR 不打包。
 - **缓存**：nsh 发行物 `~/.nsh`+`~/.local/bin`（Windows `%LOCALAPPDATA%\nsh`）按 `nsh-v0.4.0-${{ runner.os }}-${{ runner.arch }}`；cargo 与 `nsh-app/target`（**不是** `rust-backend/target`，`nsh check`/`nsh test` 默认 target 在 nsh-app 下）按 `<os>/<job>-nshapp-target-${{ hashFiles('nsh-app/Cargo.lock','rust-backend/Cargo.lock') }}`（key 含 `github.job`，见下文审查修正）。
-- **iOS/Android 不跑**：签名材料 + 移动 SDK 属发布工程，workflow 注释已写明（指向 `docs/handover-nsh-editor-2026-11-03.md`）。
+- **iOS/Android 不跑**：签名材料 + 移动 SDK 属发布工程，workflow 注释已写明（指向 `docs/archive/handover-nsh-editor-2026-11-03.md`）。
 
 ### 本地验证（YAML 无需真机构建）
 

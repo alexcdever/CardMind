@@ -170,7 +170,7 @@ error probe-app asks for nsh-base ^0.2.0 and this nsh is 0.3.0:
 **`NSH_SOURCE` 是 0.1.1 遗留**（需改写 `build-nsh.mjs`）：
 
 - 0.2.0 / 0.3.0 的 `nsh-cli` 源码中**没有** `NSH_SOURCE` 环境变量的读取（grep 0 命中；只有 `nsh init --nsh-source <DIR>` 参数，见 `nsh-cli-0.3.0/src/init.rs:93-110`、`main.rs:112`）。
-- `nsh-app/build-nsh.mjs:5-11` 仍强制要求 `NSH_SOURCE`（0.1.1 时代 `nsh build` 报 "set NSH_SOURCE to a nsh checkout"，见 `docs/migration-nsh-verification.md:79`），迁移到 0.2.0 时未清理。
+- `nsh-app/build-nsh.mjs:5-11` 仍强制要求 `NSH_SOURCE`（0.1.1 时代 `nsh build` 报 "set NSH_SOURCE to a nsh checkout"，见 `docs/archive/migration-nsh-verification.md:79`），迁移到 0.2.0 时未清理。
 - 改写建议：删检查；如需防护，改为「`nsh --version` 与 Cargo.toml `nsh-*` 版本一致」（A 路线）或「Cargo.toml 的 path checkout 版本 == CLI 版本」（B 路线）。
 
 ### 4.3 与 rust-backend 的兼容性

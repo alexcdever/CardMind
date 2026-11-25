@@ -27,7 +27,7 @@
 - 不是正式行为文档：它不定义产品行为，行为仍以 `docs/adr/`、`docs/product.md` 为准
 - 有明确的生命周期终点：迁移完成后文档转为历史记录或删除
 
-当前适用对象：`docs/migration-nsh.md`（计划）与 `docs/migration-nsh-construction.md`（施工方案与状态）。
+当前适用对象：`docs/archive/migration-nsh.md`（计划）与 `docs/archive/migration-nsh-construction.md`（施工方案与状态；两文档已完成并归档为历史记录）。
 
 
 ## 正式行为文档（唯一真相源）

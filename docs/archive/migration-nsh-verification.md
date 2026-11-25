@@ -1,6 +1,6 @@
 # NSH 迁移 — 风险验证方案
 
-> 分支：`migration/nsh`。本文件列出 `docs/migration-nsh.md` 第 6 节风险清单中**可在本机先行验证**的项、验证方法与判定标准。
+> 分支：`migration/nsh`。本文件列出 `docs/archive/migration-nsh.md` 第 6 节风险清单中**可在本机先行验证**的项、验证方法与判定标准。
 > 探针资产位于 `spike/nsh-probe`（untracked，从 `spike/nsh-probe` 分支 checkout）。
 
 ## 验证优先级与判定
@@ -35,7 +35,7 @@
 4. **V4（R5）**——CDP 灌大文档测性能基线。输出：耗时/FPS 数据。
 5. **V5（R8）**——基于 `.nsh/types` +（必要时重下的）nsh-src-git 确认事件推送面。输出：机制确认结论。
 
-每项结果回填本文件「结果」列，并同步 `docs/migration-nsh.md` 第 6 节风险表的状态。
+每项结果回填本文件「结果」列，并同步 `docs/archive/migration-nsh.md` 第 6 节风险表的状态。
 
 ---
 

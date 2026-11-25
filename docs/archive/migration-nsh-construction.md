@@ -1,7 +1,7 @@
 # CardMind → NSH 施工方案
 
 > 文档类型：`execution`（见 `docs/standards/spec-lifecycle.md`）。
-> 依据：`docs/migration-nsh.md`（计划与决策）+ `docs/migration-nsh-verification.md`（V1–V10 实测）。
+> 依据：`docs/archive/migration-nsh.md`（计划与决策）+ `docs/archive/migration-nsh-verification.md`（V1–V10 实测）。
 > 分支：`migration/nsh`。
 
 ## 这份文档怎么用
@@ -134,10 +134,10 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4），本门验的是 WebView2 内 IME 组合事件，链路已不存在。原生 `Editor` 的 Windows 中文 IME 真机验收转入 4.1 / G4.1，清单见 `docs/testing/nsh-p4-windows-ime-checklist.md`（仍待 Windows 真机）。**不冒充通过**。 |
+| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/archive/progress-nsh-editor-2026-11-03.md` P2–P4），本门验的是 WebView2 内 IME 组合事件，链路已不存在。原生 `Editor` 的 Windows 中文 IME 真机验收转入 4.1 / G4.1，清单见 `docs/testing/nsh-p4-windows-ime-checklist.md`（仍待 Windows 真机）。**不冒充通过**。 |
 | G3.2 | markdown 往返保真（按 `v9b-plaintext.mjs` 的纯文本范围） | ✅ | `web/src/md_fidelity_test.ts` 30 测试：14 类结构（标题/行内/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji/`[[id\|alias]]`/软换行）每条首次往返+幂等全绿；审查者亲手跑 30/30；真 Tiptap（jsdom 真例化，非源码正则） |
 | G3.3 | 保存后重新打开内容一致 | ✅ | `App.tsx` 保存 `noteCreate`+`noteUpdateMetadata`、加载 `noteGet`→`load`；`md_fidelity_test.ts` 幂等断言（setMarkdown→getMarkdown 两次一致）；`editor_page_test.ts` 断言 `noteGet`/`noteCreate` 真调用链；审查者实测 `handleEditorMessage` load/get-markdown 分发正确。**真 WebView2 端到端需真机**（已记） |
-| G3.4 | 性能不劣于 V4 基线 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4）：V4 基线是 WebView2 + Tiptap 的 79/12.4/21ms，WebView 链路已不存在，该同口径比较不再成立。原生 `Editor` 的 headless 预览采样见该文档 §8 AC3（50148 字，p50 4661ms，headless 口径、不代表原生 TextView）；真机性能验收转入 4.1 / G4.1。**不冒充通过**。 |
+| G3.4 | 性能不劣于 V4 基线 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/archive/progress-nsh-editor-2026-11-03.md` P2–P4）：V4 基线是 WebView2 + Tiptap 的 79/12.4/21ms，WebView 链路已不存在，该同口径比较不再成立。原生 `Editor` 的 headless 预览采样见该文档 §8 AC3（50148 字，p50 4661ms，headless 口径、不代表原生 TextView）；真机性能验收转入 4.1 / G4.1。**不冒充通过**。 |
 | G3.5 | autosave 不与「切换笔记」冲突（不丢编辑、不串写） | ✅ | `App.tsx` `noteId` 为每个 `EditorScreen` 实例的闭包 `let`（不跨实例共享，不串写）；`closeEditor` dirty→`flushMarkdown`(`get-markdown`)存完才 `goBack`；autosave 700ms debounce 只写闭包内 noteId；`nsh trace --width 1200` exit 0 应用正常渲染、`Create { kind: WebView }` + `source: Html{...}` 确认编辑器真挂载（`If` 缺陷已修 `e71c308d`，并加 `b541aac9` 断言防回归） |
 
 ---
@@ -146,7 +146,7 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
-| 4.1 | 三端内核矩阵验收（Android / iOS / Linux / macOS 编辑器实测） | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机实例（R4/B.2）。**解除条件**：各平台 `nsh package` 出包后在真机跑编辑器，验 IME/选区/markdown 往返（按 `docs/migration-nsh.md` 4.3 矩阵）。**不冒充通过**。 |
+| 4.1 | 三端内核矩阵验收（Android / iOS / Linux / macOS 编辑器实测） | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机实例（R4/B.2）。**解除条件**：各平台 `nsh package` 出包后在真机跑编辑器，验 IME/选区/markdown 往返（按 `docs/archive/migration-nsh.md` 4.3 矩阵）。**不冒充通过**。 |
 | 4.2 | 打包：`nsh package --target windows`（锁 `v0.1.1` + 对应 `NSH_SOURCE`） | ✅ 已完成 | 本机实测 `nsh package --target windows`（`nsh 0.1.1` + `NSH_SOURCE` = v0.1.1 tag）**exit 0**，产 `cardmind/cardmind.exe` **31.4 MB** + `cardmind.zip` **13.1 MB**（含 `nsh/bundle.nshc` + `cardmind.exe`）；同 V2 结论 |
 | 4.3 | 更新分发：整包替换（R11 定案，**不做**模块级热更） | ✅ 已完成 | `docs/adr/0009-update-distribution-whole-package.md`（合并 `b2606ad4`）：整包替换定案（`nsh package` 出 zip/exe 实测数字）、保留 `update_service` 的「拉 manifest、比版本、下载」、只把「下载 msix 调安装器」换成「下载新包替换」、**明确不做** `loadpkg` 模块级热更（R11）；按 0008 格式（日期/状态/决策者/背景/决策/拒绝方案/后果/非目标） |
 | 4.4 | 数据共存：现有 SQLite + LoroDoc 数据能被新壳直接打开 | ✅ 已完成 | 合并 `b2606ad4`；`d0b7d1e9`（test 红）/`2ad10729`（feat）；**根因修复**：App.tsx 原为 `createNoteStore(":memory:")`（内存库，旧笔记看不到）→ 改为 `BackendStore.dataDir()` 真路径；`nsh-app/src/lib.rs` `data_dir()`（Windows → `%APPDATA%\com.cardmind\cardmind`，回退 `com.cardmind.nsh` 并创建，返回 `{dir}\|{exists}`）+ `ensure_sync()` 用 `SyncService::new_persistent(&dir)` 复用旧 `cardmind.loro`/`device.key`；**真读证明**：`nsh-app/tests/coexist_notes_probe.rs` 复制真实 `cardmind.db` 到 `%TEMP%` 夹具 → `NoteStore::new` → `list_notes()` 非空、`note_count = 1`（表内 4 行含 3 条软删）；**真实数据未被改**：`cardmind.db` 1040384 B / mtime `2026-10-17T12:03:58` 前后一致；`data_coexist_test.ts` 6 pass |
@@ -170,7 +170,7 @@
 |---|---|---|---|
 | B.1 | R3 扫码配对形态未定 | ⛔ 阻塞 | 需 Android/iOS 真机；NSH **无相机 API**，只能平台侧自写或网页 `BarcodeDetector` |
 | B.2 | R4 三端内核 IME/选区差异 | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机跑原生 `Editor` 验 IME/选区（WebView 已删，原「Android WebView / iOS WKWebView」措辞作废） |
-| B.3 | R10 焦点/快捷键跨 WebView 桥接 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4）：R10 的「iframe 焦点 ↔ 原生焦点」两条链已随 WebView 消失，编辑器与页面同处一个 NSH 焦点世界，快捷键直接用 `keymap.bind` 绑到应用（`nsh-app/editor_page.tsx` 以 `when:"always"` 绑 Escape 清候选）。行为面由 `nsh test --filter editor`（28 条）覆盖。 |
+| B.3 | R10 焦点/快捷键跨 WebView 桥接 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/archive/progress-nsh-editor-2026-11-03.md` P2–P4）：R10 的「iframe 焦点 ↔ 原生焦点」两条链已随 WebView 消失，编辑器与页面同处一个 NSH 焦点世界，快捷键直接用 `keymap.bind` 绑到应用（`nsh-app/editor_page.tsx` 以 `when:"always"` 绑 Escape 清候选）。行为面由 `nsh test --filter editor`（28 条）覆盖。 |
 
 ---
 

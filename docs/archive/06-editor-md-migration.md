@@ -265,7 +265,7 @@ onSelectionChange(或 completionTriggerCharacters 仅作"打开"信号)
 | 16 | `tool/git_gate.mjs` | 改 | 加 `nsh check .`（在 `tsxTest` 前；它同时做 TS 类型 + app crate cargo check）；可选 `nsh test` | 04 §6.3 |
 | 17 | `.github/workflows/*` | 改（P2/P3） | 增加 `nsh-app/**` 触发与 `nsh check` job（现状 4 个 workflow 无 nsh/tsx 步骤） | 04 §6.4 |
 | 18 | `nsh-app/theme.ts` | 改（小） | 新增编辑器/预览 token（`editorFontSize:16`、`editorLineHeight:26`、`editorFontFamily`、预览 accent 等），避免硬编码 | `theme.ts` 现状 39-62 |
-| 19 | `AGENTS.md` / `docs/migration-nsh*.md` | 改（P3） | 技术栈 nsh 0.3.0；编辑器架构 WebView+Tiptap → Editor+TextView；迁移文档状态 | 01 F4 |
+| 19 | `AGENTS.md` / `docs/archive/migration-nsh.md`（及同目录 migration-nsh-construction/-verification） | 改（P3） | 技术栈 nsh 0.3.0；编辑器架构 WebView+Tiptap → Editor+TextView；迁移文档状态 | 01 F4 |
 
 **删除后不再存在的依赖**：`@tiptap/*`、`prosemirror-*`、`tiptap-markdown`、`esbuild`、`jsdom`（jsdom 仅测试用，删除后测试走 `nsh test`）；`web/dist/editor_html.ts` 的"先 build:web 再 nsh build"约束消失（01 §2.7）。
 

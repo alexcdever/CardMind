@@ -7,7 +7,7 @@
 ## 历史证据与适用范围（重要）
 
 - **WebView + Tiptap 时代（旧编辑器）**：Windows 中文 IME 已实测通过 ——
-  `docs/migration-nsh-verification.md` **§V8（R10）**：用 WebView2 CDP
+  `docs/archive/migration-nsh-verification.md` **§V8（R10）**：用 WebView2 CDP
   `Input.imeSetComposition` 走 Chromium 真实输入管线，`compositionstart →
   update×7 → compositionend`，「你好」入文、光标 `from:3`、markdown 一致。
 - **NSH 0.3.0 原生 `Editor`（当前编辑器，P2 起）**：输入栈已从「浏览器 IME」
@@ -121,7 +121,7 @@ nsh test --filter "editor"
 
 ## 记录
 
-执行后把结果填回 `docs/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
+执行后把结果填回 `docs/archive/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
 实测机器（CPU/内存/Windows 版本）、A/B/C 各项 通过/不通过 + 备注、预览耗时。
 
 ## F. macOS 预验证（2026-11-05，**非 Windows/真机替代**）

@@ -49,5 +49,5 @@
 
 ## 记录
 
-执行后把结果填回 `docs/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
+执行后把结果填回 `docs/archive/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
 设备型号 / OS 版本 / 键盘（Gboard、搜狗、系统键盘等）/ 各项 通过/不通过 + 截图。

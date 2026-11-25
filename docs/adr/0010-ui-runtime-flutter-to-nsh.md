@@ -6,8 +6,8 @@
 
 ---
 
-> 来源：`docs/migration-nsh.md`（迁移计划与风险 R1–R11）、`docs/migration-nsh-verification.md`（V1–V10 实测）、
-> `docs/migration-nsh-construction.md`（施工方案与闸门）。
+> 来源：`docs/archive/migration-nsh.md`（迁移计划与风险 R1–R11）、`docs/archive/migration-nsh-verification.md`（V1–V10 实测）、
+> `docs/archive/migration-nsh-construction.md`（施工方案与闸门）。
 > 数据契约见 [ADR 0002](0002-rust-single-backend-core-multi-entry.md)、[ADR 0005](0005-rust-runtime-library-single-path.md)、
 > [ADR 0007](0007-links-and-search-data-contract.md)；同步网络见 [ADR 0006](0006-lan-sync-loro-iroh-mdns.md)。
 
@@ -16,7 +16,7 @@
 CardMind 的界面原本是 Flutter。体验最差、验证面最重的一块是**编辑器**：`appflowy_editor` 的
 IME、选区与生态问题反复消耗开发时间，且每次 Flutter 升级都可能带来新的输入法回归。
 
-2026 年 9–10 月的探针（`spike/nsh-probe` 分支，结论已并入 `docs/migration-nsh-verification.md`）
+2026 年 9–10 月的探针（`spike/nsh-probe` 分支，结论已并入 `docs/archive/migration-nsh-verification.md`）
 把两条候选路线都实测了一遍：
 
 - **路线 B（全网页 + 壳）**：页面、原生与后端之间的通路已打通，但等于把界面整体重写，NSH 只剩

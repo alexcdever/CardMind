@@ -8,7 +8,7 @@
 > **存储格式**已被取代——自 2026-11（P4-2，`f26367d6`）起正文链接写入标准 Markdown
 > 行内链接 `[alias](cardmind://note/<id>)`；旧 `[[target-id|alias]]` 仍兼容读取，
 > 笔记加载时惰性归一为新格式。链接索引语义不变（链接仍只从正文解析，links 表仍是
-> 读投影，反链/悬空链接行为不变）。详见 `docs/progress-nsh-editor-2026-11-03.md` §23。
+> 读投影，反链/悬空链接行为不变）。详见 `docs/archive/progress-nsh-editor-2026-11-03.md` §23。
 
 ---
 

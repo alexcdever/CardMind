@@ -1,6 +1,6 @@
 # 交接文档：CardMind NSH 编辑器重构（2026-11-03）
 
-> 用途：把本项目换到另一台设备继续开发。进度细节见 [`docs/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md)。
+> 用途：把本项目换到另一台设备继续开发。进度细节见 [`docs/archive/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md)。
 
 ## 1. 当前仓库状态（重要）
 
@@ -10,7 +10,7 @@
 - **该分支已推送到 origin**：`origin/migration/nsh`（2026-11-03，包含本交接文档及后续提交）。新设备直接 `git fetch && git checkout migration/nsh` 即可；若之后又有本地提交，记得再 `git push`。
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
-- **迁移收尾已完成**（2026-11，worktree `nsh-cleanup`）：Flutter CI/平台工程目录/`.gitignore` 残留已删，锚点规范改写为 NSH 版，`AGENTS.md` 平台与日志段落改为 NSH 现状。删除项与验证证据见 [`docs/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md) §10。
+- **迁移收尾已完成**（2026-11，worktree `nsh-cleanup`）：Flutter CI/平台工程目录/`.gitignore` 残留已删，锚点规范改写为 NSH 版，`AGENTS.md` 平台与日志段落改为 NSH 现状。删除项与验证证据见 [`docs/archive/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md) §10。
 - **CI 现状**（2026-11-07，`ci-release-channels`）：三个 workflow——
   - `rust_quality.yml`：Rust fmt/clippy/test/coverage；
   - `.github/workflows/nsh_app.yml`：nsh CLI 0.4.0 前端质量（tsx/`nsh check`/两条带 filter 的 `nsh test`）+ linux/macos/windows 打包（仅 main/tag `v*`/dispatch，PR 不打包；web 目标已删——后端链编不进 wasm，见 progress §32）；
@@ -124,8 +124,8 @@ nsh-app/
   build-nsh.mjs          构建包装（校验 CLI 版本与 Cargo nsh-* 依赖一致）
 rust-backend/            Loro + SQLite + iroh；本轮零改动
 docs/research/nsh-editor/  调研总报告 + 01–06 分报告（已提交）
-docs/progress-nsh-editor-2026-11-03.md  本进度文档
-docs/handover-nsh-editor-2026-11-03.md  本文档
+docs/archive/progress-nsh-editor-2026-11-03.md  本进度文档
+docs/archive/handover-nsh-editor-2026-11-03.md  本文档
 spike/nsh-editor-md-probe/  P2 探针与截图（已提交）
 ```
 

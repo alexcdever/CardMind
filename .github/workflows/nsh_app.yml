@@ -7,7 +7,7 @@ name: NSH App
 #
 # 本 workflow 只覆盖 linux / macos / windows / web：
 # iOS（签名 .ipa）与 Android（签名 .apk）需要签名材料与移动 SDK，
-# 属于发布工程，不在此处跑；交接见 docs/handover-nsh-editor-2026-11-03.md。
+# 属于发布工程，不在此处跑；交接见 docs/archive/handover-nsh-editor-2026-11-03.md。
 
 on:
   push:
@@ -299,4 +299,4 @@ jobs:
   # `cardmind-backend` 依赖 iroh（tokio networking）、rusqlite（bundled SQLite）
   # 与 tokio，整条链在 wasm 上编不过（实测 run 42255318234：`mio` 48 个 E0599/E0308）。
   # 除非后端另出 wasm 变体，否则本应用没有 web 构建。iOS/Android 同理留给发布工程
-  # （需要签名材料与移动 SDK），见 docs/handover-nsh-editor-2026-11-03.md。
+  # （需要签名材料与移动 SDK），见 docs/archive/handover-nsh-editor-2026-11-03.md。

@@ -6,8 +6,8 @@
 
 ---
 
-> 来源：`docs/migration-nsh.md`「更新分发：NSH 签名包 vs 现有 msix」一节 + 风险表 R11。
-> 施工项：`docs/migration-nsh-construction.md` 4.3（更新分发整包替换定案）。
+> 来源：`docs/archive/migration-nsh.md`「更新分发：NSH 签名包 vs 现有 msix」一节 + 风险表 R11。
+> 施工项：`docs/archive/migration-nsh-construction.md` 4.3（更新分发整包替换定案）。
 > 同步网络与打包链路上下文见 [ADR 0006](0006-lan-sync-loro-iroh-mdns.md)、`docs/sync-network.md`。
 
 ## 背景

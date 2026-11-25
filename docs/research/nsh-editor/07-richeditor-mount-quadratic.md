@@ -209,7 +209,7 @@ release 下曲线**仍是超线性**（500→303ms、1000→885ms、2000→3 849
 ## 8. 复现与证据归档
 
 - 剖析脚本、`sample` 原始输出、`--trace` 日志、计数器插桩 diff、可验证 patch diff、upstream repro 两文件：`.git/pipeline/spikes/`（会话内归档，不进 Git）。
-- 组件侧表现与处置决定见 `docs/progress-nsh-editor-2026-11-03.md` §27。
+- 组件侧表现与处置决定见 `docs/archive/progress-nsh-editor-2026-11-03.md` §27。
 
 ## 9. nsh 0.7.0 实测补记（2026-11-25，上游修复已合入）
 

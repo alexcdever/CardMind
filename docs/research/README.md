@@ -15,6 +15,6 @@
 - [`nsh-editor/03-version-and-toolchain.md`](nsh-editor/03-version-and-toolchain.md)：NSH 版本事实、main 源码构建实录、RichEditor 探针结果（历史/备选）。
 - [`nsh-editor/04-app-upgrade.md`](nsh-editor/04-app-upgrade.md)：nsh-app 从 NSH 0.2.0 升级到 0.3.0/main 的逐文件 API 迁移面（0.3.0 部分为当前施工依据）。
 - [`nsh-editor/05-editor-doc-api.md`](nsh-editor/05-editor-doc-api.md)：0.3.0 `Editor`/`TextView` API 全量、`[[` 补全实测与坑、探针结果。
-- [`nsh-editor/06-editor-md-migration.md`](nsh-editor/06-editor-md-migration.md)：基于 `Editor` + `TextView` 的编辑器替换施工方案（逐文件、测试、阶段、验收）。
+- [`archive/06-editor-md-migration.md`](../archive/06-editor-md-migration.md)：基于 `Editor` + `TextView` 的编辑器替换施工方案（逐文件、测试、阶段、验收；已归档）。
 
 版本号和发布时间会变化；涉及当前依赖选择时，以 `nsh-app/Cargo.toml`、`nsh-app/nsh.json` 和官方一手来源为准。

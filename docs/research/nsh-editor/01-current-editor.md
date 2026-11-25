@@ -9,11 +9,11 @@
 
 ## 0. 结论摘要（TL;DR）
 
-1. **现状＝1 个 WebView 内 Tiptap 3.32 实例 + 页内 JSON 桥**；`Tiptap` 文档树只存在于 WebView 内存，**markdown 字符串是唯一编辑数据契约**（`web/src/index.ts:95-102`，`docs/migration-nsh.md:150-152`）。
+1. **现状＝1 个 WebView 内 Tiptap 3.32 实例 + 页内 JSON 桥**；`Tiptap` 文档树只存在于 WebView 内存，**markdown 字符串是唯一编辑数据契约**（`web/src/index.ts:95-102`，`docs/archive/migration-nsh.md:150-152`）。
 2. **真正能进编辑器页面的入口只有两条**：移动端列表点条目（`note_list.tsx:240-246`）与桌面侧栏「新建笔记」（`note_list.tsx:477-482`）都 push `editor` 路由。由此产生两个现状缺口：**桌面点已有笔记只更新 `selectedNoteId`、第三栏仍是占位**（`note_list.tsx:568-600`，占位文案 593），即桌面无法编辑已有笔记；**移动端没有「新建笔记」入口**（新建按钮只在桌面侧栏，移动页头只有设置/回收站，`note_list.tsx:687-697`）。这也与 `docs/standards/ui-style-guide.md:37` 的「桌面三栏：…编辑器（流式，最大宽 48rem 居中）」不一致。
 3. **保存＝页内 700ms debounce → `{type:"markdown"}` → 原生 `noteCreate` + `noteUpdateMetadata` + `syncNotesToStore`**（`web/src/index.ts:104-120`，`App.tsx:236-254`）。`noteCreate` 每次都 `NoteCrdt::new()` 重建 doc（`rust-backend/src/sync.rs:1519-1536`），语义上等于整篇替换；后端**没有把 `SyncService::update_note` 导出**给 TSX（`sync.rs:1545` 存在，`api.rs`/`nsh-app/src/lib.rs` 均无导出，grep 0 命中）。
 4. **后端契约**：每个笔记一个 `LoroDoc`；正文 = `LoroText("content")` 整段 markdown；元数据 = `meta` Map（`tags`/`created_at`/`updated_at`/`deleted_at`）；SQLite 只是读投影；`links` 表由正文纯文本 `[[...]]` 扫描重建；**跨设备同步包是「每笔记整篇快照覆盖」，不是逐字符合并**（`sync.rs:2890-2892`）。
-5. **测试**：TSX 全量 **263 pass / 64 suites**（本机实跑，§5.1）；编辑器相关 `editor_page_test.ts` 55、`web/src/md_fidelity_test.ts` 30、`web/src/editor_perf_test.ts` 1；Rust `note_crdt_test`/`store_test` 各 10 pass。**中文 IME 与真 WebView2 性能只有一次性外部探针（V8/V4），仓库内没有可重复的自动化**（`docs/migration-nsh-verification.md:13,388-409`）。
+5. **测试**：TSX 全量 **263 pass / 64 suites**（本机实跑，§5.1）；编辑器相关 `editor_page_test.ts` 55、`web/src/md_fidelity_test.ts` 30、`web/src/editor_perf_test.ts` 1；Rust `note_crdt_test`/`store_test` 各 10 pass。**中文 IME 与真 WebView2 性能只有一次性外部探针（V8/V4），仓库内没有可重复的自动化**（`docs/archive/migration-nsh-verification.md:13,388-409`）。
 6. **`nsh test`（本机 CLI 0.3.0）能驱动原生 TSX（`open/press/type/waitFor/value/screenshot`）；但据 `nsh trace` 的经验，无头模式只建 WebView 节点、不执行页面 JS（`nsh test` 是否同样 **待验证**）；若测试 `open` 的是 `App.tsx` 入口，启动副作用会碰真实数据目录（§5.5），直接跑有风险。
 
 ---
@@ -23,10 +23,10 @@
 | # | 前提或文档说法 | 事实 | 证据 | 处理 |
 |---|---|---|---|---|
 | F1 | 「NSH 最新版已支持编辑器」 | 本机 `nsh --version` = **0.3.0 (76fa8a7)**。仓库内 NSH 生成类型（`.nsh/types`，mtime 2026-10-23 18:01）**没有** `RichEditor` / `createRichEditor`（全 `.nsh/types` grep 0 命中）；但有 **`TextView`（只读 Markdown 渲染）**与 **`Input`（多行/选区/`onCompositionChange`）**。`nsh --help` 也没有编辑器类命令。 | `nsh --version`；`.nsh/types/nsh/base.d.ts:806-859`（TextView）；`.nsh/types/nsh/types.d.ts:782-830`（Input）；`.nsh/types/nsh/index.d.ts:155-158`（Input 说明） | 「已支持编辑器」**不成立**：0.3.0 只有只读 `TextView` + 原生 `Input`。**RichEditor 是否存在于 main/下一版：待 task-2 用源码确认**。 |
-| F2 | `docs/migration-nsh.md`「双向链接本期不做」（157、206 行） | 实现已经做了双向链接：`[[` 补全触发、候选 chip、`insert-link`、字面保留回归测试。 | `App.tsx:200-208,310-336,386-429`；`web/src/protocol.ts:116-143,155-168`；`editor_page_test.ts:408-503` | 文档滞后。迁移时**不能**按「未使用功能」降级处理；见 §7。 |
+| F2 | `docs/archive/migration-nsh.md`「双向链接本期不做」（157、206 行） | 实现已经做了双向链接：`[[` 补全触发、候选 chip、`insert-link`、字面保留回归测试。 | `App.tsx:200-208,310-336,386-429`；`web/src/protocol.ts:116-143,155-168`；`editor_page_test.ts:408-503` | 文档滞后。迁移时**不能**按「未使用功能」降级处理；见 §7。 |
 | F3 | UI 规范：桌面三栏含编辑器（`docs/standards/ui-style-guide.md:37`） | 代码中桌面第三栏是占位；编辑器只能以 push 路由出现。 | `note_list.tsx:568-600`（占位文案 593）；`note_list.tsx:240-246`；`navigation.tsx:22-24`；`App.tsx:451-452` | 迁移需求需先拍板：桌面是「第三栏内嵌编辑器」还是「push 路由」；现状基线是后者 + 占位。 |
 | F4 | `AGENTS.md` 技术栈表写 nsh **0.1.1** | 本机 CLI = 0.3.0；`nsh-app/Cargo.toml` 钉的是 `nsh-core = "0.2.0"` / `nsh-base = "0.2.0"`；`nsh.json` 不含版本字段。 | `AGENTS.md` 技术栈表；`nsh-app/Cargo.toml:10-11`；`nsh-app/nsh.json:1-10` | 版本三方不一致；`nsh test` 可用性与 `NSH_SOURCE` 对应关系 **待 task-3 核实**。 |
-| F5 | 当前「富文本」范围 | 代码挂了 `Table*` 与 `Image` 扩展（`index.ts:82-88`），但产品文档不承诺附件/图片（`docs/migration-nsh.md:210` R6），V9b 明确「表格/图片不是需求」（`docs/migration-nsh-verification.md:480-486`）；页面**没有任何格式工具栏**，格式只能靠 Markdown 输入规则/快捷键。 | `index.ts:65-91`（全文无 `toggleBold/insertTable/insertImage` 等命令，grep 仅 `insertContent` 一处）；`package.json:12-30` | 现状实现**超出**产品需求。迁移矩阵须明确「保留表格/图片」还是「降级为纯 Markdown」；若删除，属于产品决策。 |
+| F5 | 当前「富文本」范围 | 代码挂了 `Table*` 与 `Image` 扩展（`index.ts:82-88`），但产品文档不承诺附件/图片（`docs/archive/migration-nsh.md:210` R6），V9b 明确「表格/图片不是需求」（`docs/archive/migration-nsh-verification.md:480-486`）；页面**没有任何格式工具栏**，格式只能靠 Markdown 输入规则/快捷键。 | `index.ts:65-91`（全文无 `toggleBold/insertTable/insertImage` 等命令，grep 仅 `insertContent` 一处）；`package.json:12-30` | 现状实现**超出**产品需求。迁移矩阵须明确「保留表格/图片」还是「降级为纯 Markdown」；若删除，属于产品决策。 |
 | F6 | WebView 导入方式 | App 用的是 `import { WebView } from "nsh/webview"`，但生成声明已把 `nsh/webview` 标为 deprecated（「Import from "nsh"」）。 | `App.tsx:3`；`.nsh/types/nsh/webview.d.ts:19-24` | 迁移若移除 WebView，此 deprecated 依赖自然消失。 |
 
 ---
@@ -150,7 +150,7 @@ saveMarkdown(markdown):
 - `[[` 触发：`linkPrefixFromContext(textBefore)` 正则 `/\[\[([^\[\]\|\n]*)$/`（`protocol.ts:116-122`）；原生命中则 `autoCompleteLinks(prefix)`（`App.tsx:310-320`，313），结果映射成 **title 列表**（315）。
 - 候选点击：`sendRequest("insert-link",{title})`（402 标签 chip、424 候选 chip）→ 页内回删 `[[prefix` 并插入 ``[[${title}]] ``（`index.ts:154-168`）。
 - **已知缺陷**：候选只保留 title、丢掉 note id（315），插入时用 title 当 target（`index.ts:167`）；Rust 的 `parse_links_from_content` 会把 title 当 `target_id`（`sync.rs:4540-4560`），`links.target_id` 无法 JOIN 到 `notes.id` → 双向链接「悬空」（`store.rs:354-404` 的 `exists=false` 分支）。代码层确定，端到端需真实笔记验证 → **标「待验证」**，但迁移时应改为 `[[id|title]]`。
-- 无页内联想弹层/键盘上下选择：候选显示在原生 side（chip 行），只支持点按；输入法/键盘焦点在 WebView 内，两者无焦点桥接（`docs/migration-nsh.md:170,214` R10）。
+- 无页内联想弹层/键盘上下选择：候选显示在原生 side（chip 行），只支持点按；输入法/键盘焦点在 WebView 内，两者无焦点桥接（`docs/archive/migration-nsh.md:170,214` R10）。
 
 ### 2.7 构建与产物
 
@@ -169,7 +169,7 @@ saveMarkdown(markdown):
 | R2 | 打开笔记会触发一次多余的全篇 `noteCreate` + 投影刷新（实测 §2.5） | `index.ts:116-120`；`App.tsx:360-362` | 每次打开都写盘；同步侧会产生一次待推送变更。 |
 | R3 | 清空笔记无法落盘：`markdown.trim()===""` 直接 return（状态停留在「尚未保存」） | `App.tsx:238-239` | 用户删光内容后旧内容仍在存储里，关闭/重开后内容「复活」；空笔记策略需产品决策。 |
 | R4 | 每次保存重建 `NoteCrdt`（新 LoroDoc），无增量历史 | `sync.rs:1519-1536`（`NoteCrdt::new()` + `remove` + `insert`） | 后端 CRDT 版本向量每次重置；与「导入覆盖」叠加后没有文本级合并（§4.3）。 |
-| R5 | `[[` 补全插入的目标是标题而非 id | `App.tsx:315,402,424`；`index.ts:167`；`sync.rs:4540-4560` | 链接写坏/悬空；现有数据与 Rust 解析契约是 `[[id|alias]]`（V9b 证实 Flutter 版往返保真，`docs/migration-nsh-verification.md:511-524`）。 |
+| R5 | `[[` 补全插入的目标是标题而非 id | `App.tsx:315,402,424`；`index.ts:167`；`sync.rs:4540-4560` | 链接写坏/悬空；现有数据与 Rust 解析契约是 `[[id|alias]]`（V9b 证实 Flutter 版往返保真，`docs/archive/migration-nsh-verification.md:511-524`）。 |
 | R6 | 标签行重复渲染（原生 + 页内），且无标签编辑 | `App.tsx:386-407`；`index.ts:128-139` | 双重 UI；迁移可收敛到原生一处。 |
 | R7 | 保存失败无重试、无提示（只有 `尚未保存` 文本 + console.error） | `App.tsx:250-252`；`index.ts:111-114`（页内已把 dirty 置 false，不重发） | 若写入失败，只有关页时的 flush 再试一次。 |
 | R8 | 关闭时 flush 8s 超时即放弃 | `App.tsx:222-234,257-271` | 极端情况丢最后一次编辑。 |
@@ -200,10 +200,10 @@ R10 实测（`node --import tsx`，调 `normalizeMarkdownFromEditor(normalizeMar
 | 5 | `[[id\|alias]]` 字面保留（不被 Tiptap 转义） | ✅ `unescapeBrackets` 还原 + 回归断言 | `protocol.ts:155-158`；`editor_page_test.ts:230-235`；`md_fidelity_test.ts:123-131` |
 | 6 | 富文本格式（粗/斜/删/行内码/标题/列表/引用/分隔线） | ✅ 由 StarterKit 提供（输入规则/快捷键），**无工具栏** | `index.ts:75-78`；`node_modules/@tiptap/starter-kit/dist/index.d.ts:1-15` |
 | 7 | 表格 | ⚠️ 扩展已挂、仅 Markdown 语法可入；无表格 UI | `index.ts:82-85`；`md_fidelity_test.ts:90` |
-| 8 | 图片 | ⚠️ 仅 `![]()` 渲染；无选择/上传/粘贴处理；产品文档称无附件功能 | `index.ts:86`；`md_fidelity_test.ts:91`；`docs/migration-nsh.md:210`；`docs/migration-nsh.md:207`（NSH 无文件选择器） |
+| 8 | 图片 | ⚠️ 仅 `![]()` 渲染；无选择/上传/粘贴处理；产品文档称无附件功能 | `index.ts:86`；`md_fidelity_test.ts:91`；`docs/archive/migration-nsh.md:210`；`docs/archive/migration-nsh.md:207`（NSH 无文件选择器） |
 | 9 | 代码块 | ✅ StarterKit codeBlock；回归用例 | `index.ts:75-78`；`md_fidelity_test.ts:89` |
 | 10 | 撤销/重做 | ✅ Tiptap undoRedo，`newGroupDelay:500`；仅 WebView 内键盘可用 | `index.ts:75-78`；`editor_page_test.ts:349-406` |
-| 11 | 中文 IME | ✅（外部探针验证；仓库内无自动化） | `docs/migration-nsh-verification.md:388-409`；`md_fidelity_test.ts:6`（jsdom 无 IME） |
+| 11 | 中文 IME | ✅（外部探针验证；仓库内无自动化） | `docs/archive/migration-nsh-verification.md:388-409`；`md_fidelity_test.ts:6`（jsdom 无 IME） |
 | 12 | 选区事件 | ✅ `selection` + `textBefore(≤40)`；原生只用文本 | `index.ts:122-126`；`protocol.ts:85-114`；`App.tsx:322-336,363-366` |
 | 13 | `[[` 自动补全触发 | ✅ 光标前未闭合 `[[prefix`；候选来自 `autoCompleteLinks` | `protocol.ts:116-122`；`App.tsx:310-320,322-336`；`editor_page_test.ts:425-465` |
 | 14 | 补全候选 UI/插入 | ⚠️ 原生 chip 行（非页内弹层）；插入 `[[title]]`（缺 id，见 R5） | `App.tsx:409-429,154-168`；`index.ts:167` |
@@ -215,7 +215,7 @@ R10 实测（`node --import tsx`，调 `normalizeMarkdownFromEditor(normalizeMar
 | 20 | autosave 700ms | ✅ | `index.ts:104-120`；`protocol.ts:41` |
 | 21 | 关闭前 flush | ✅（8s 超时，失败即放弃） | `App.tsx:256-271` |
 | 22 | 三栏/移动布局 | ⚠️ 桌面三栏存在但编辑器占位；编辑器为 push 路由 | `note_list.tsx:568-616,240-246`；`navigation.tsx:22-24` |
-| 23 | 性能基线（5 万字） | ✅ 外部真 WebView2：setContent 79ms / 打字 12.4ms / getMarkdown 21ms / 滚动 159FPS；本机 jsdom 738.7/16.2/57.6ms | `docs/migration-nsh-verification.md:13,152-203`；`web/src/editor_perf_test.ts:45,117-143`（本机实跑数字） |
+| 23 | 性能基线（5 万字） | ✅ 外部真 WebView2：setContent 79ms / 打字 12.4ms / getMarkdown 21ms / 滚动 159FPS；本机 jsdom 738.7/16.2/57.6ms | `docs/archive/migration-nsh-verification.md:13,152-203`；`web/src/editor_perf_test.ts:45,117-143`（本机实跑数字） |
 | 24 | 列表联动（保存→列表刷新） | ⚠️ 保存后不主动通知列表；列表页只在挂载时加载，返回时可能陈旧 | `App.tsx:245-247`；`note_list.tsx:781-783`（effect 仅挂载执行） |
 | 25 | 错误/空态 | ❌ 编辑器页无错误/空态/加载 UI | `App.tsx:372-439` |
 | 26 | 离线/同步 | ✅ 保存后 `mark_sync_pending`，调度器异步推送整篇快照 | `sync.rs:1518-1536,2330-2337,2381-2407` |
@@ -344,17 +344,17 @@ cargo test --test note_crdt_test --test store_test  # 本次实测：10 + 10 pas
 
 ### 5.4 覆盖缺口（现实情况）
 
-1. **中文 IME**：仓库内无自动化。唯一证据是外部探针 V8（WebView2 CDP `Input.imeSetComposition`：`compositionstart→update×7→end`，「你好」入文、`from:3`、markdown 正确）（`docs/migration-nsh-verification.md:388-409`；探针资产在 untracked 的 `spike/`，`docs/migration-nsh-verification.md:4`）。
-2. **真性能**：jsdom 与真 WebView2 不同口径（`editor_perf_test.ts:7-8,128-130`；V4 章节 `docs/migration-nsh-verification.md:152-203`）。真数字来自一次性 CDP 探针。
-3. **真机平台**：Android/iOS/Linux/macOS 全部未验（`docs/migration-nsh-construction.md:137,149-150,160,171`：G3.1/G4.1/B.2 均为 ⛔ 阻塞）。
-4. **端到端保存/重开**：只有源码断言 + jsdom 幂等，没有真 WebView2 的「改→关→重开」自动化（`docs/migration-nsh-construction.md:139` G3.3 只到真机前的程度）。
+1. **中文 IME**：仓库内无自动化。唯一证据是外部探针 V8（WebView2 CDP `Input.imeSetComposition`：`compositionstart→update×7→end`，「你好」入文、`from:3`、markdown 正确）（`docs/archive/migration-nsh-verification.md:388-409`；探针资产在 untracked 的 `spike/`，`docs/archive/migration-nsh-verification.md:4`）。
+2. **真性能**：jsdom 与真 WebView2 不同口径（`editor_perf_test.ts:7-8,128-130`；V4 章节 `docs/archive/migration-nsh-verification.md:152-203`）。真数字来自一次性 CDP 探针。
+3. **真机平台**：Android/iOS/Linux/macOS 全部未验（`docs/archive/migration-nsh-construction.md:137,149-150,160,171`：G3.1/G4.1/B.2 均为 ⛔ 阻塞）。
+4. **端到端保存/重开**：只有源码断言 + jsdom 幂等，没有真 WebView2 的「改→关→重开」自动化（`docs/archive/migration-nsh-construction.md:139` G3.3 只到真机前的程度）。
 
 ### 5.5 迁移到 `nsh test` 的映射与损失
 
 **`nsh test` 能力（本机 0.3.0 CLI）**：
 - 发现规则：`*.test.tsx` / `*.test.ts`，且必须 `import "nsh/test"`；先跑 `nsh.json` `"rust"` 目录的 `cargo test`（`nsh test --help`）。
 - 驱动原生 UI：`open(entry, {width,height,storage,network,clipboard,...})`（`test.d.ts:155`），`app.press/type/clear/scroll/drag/wait/waitFor/waitUntil/value/texts/shows/back/onDialog/screenshot/clipboard`（`test.d.ts:160-229`）；`expect`（158），`test/describe/beforeAll/...`（123-155）。
-- **无头模式对 WebView 的支持未证实**：`nsh trace` 无头只建 `Create { kind: WebView }`、不跑页面 JS（`docs/migration-nsh-construction.md:123,137`）；`nsh test` 默认无头是否同样 **待验证**。`nsh test --target windows` 可在真实宿主窗口跑（`nsh test --help` 的 `--target`），另有 `--fps` 性能读数与 `screenshot`。
+- **无头模式对 WebView 的支持未证实**：`nsh trace` 无头只建 `Create { kind: WebView }`、不跑页面 JS（`docs/archive/migration-nsh-construction.md:123,137`）；`nsh test` 默认无头是否同样 **待验证**。`nsh test --target windows` 可在真实宿主窗口跑（`nsh test --help` 的 `--target`），另有 `--fps` 性能读数与 `screenshot`。
 
 **映射表**：
 
@@ -408,7 +408,7 @@ cargo test --test note_crdt_test --test store_test  # 本次实测：10 + 10 pas
 
 > 迁移后至少保持以下行为；每条给出当前证据与验收方式。除特别标注外，均为本分支现有行为。
 
-1. **中文 IME 全链路**：组合开始→多次 update→提交，上屏文本、光标位置、写出的 markdown 三者一致，无拼音残留、无重复上屏。证据：`docs/migration-nsh-verification.md:388-409`（V8；CDP 真实输入管线）。验收：真机（Windows 先做）按 V8 脚本口径复测；Android/iOS 列入平台矩阵。
+1. **中文 IME 全链路**：组合开始→多次 update→提交，上屏文本、光标位置、写出的 markdown 三者一致，无拼音残留、无重复上屏。证据：`docs/archive/migration-nsh-verification.md:388-409`（V8；CDP 真实输入管线）。验收：真机（Windows 先做）按 V8 脚本口径复测；Android/iOS 列入平台矩阵。
 2. **`[[...]]` 字面量不被破坏**：任意往返后正文仍含 `[[target]]` / `[[target|alias]]`，不含 `\[\[`；Rust `parse_links_from_content` 能解析出相同 target/alias。证据：`protocol.ts:155-158`；`md_fidelity_test.ts:123-131`；`sync.rs:4540-4560`。验收：同用例 + 真机保存→重开。
 3. **软换行保真**：`行一\n行二` 保存后仍是 `\n`，不被合并成空格、也不变成硬换行残留。证据：`protocol.ts:145-168`；`md_fidelity_test.ts:99`；`editor_page_test.ts:238-246`。验收：同用例 + 真机。
 4. **14 类 Markdown 结构首次往返与幂等**：标题/行内样式/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji/`[[id\|alias]]`/软换行。证据：`web/src/md_fidelity_test.ts:82-139`（30 pass）。验收：迁移后等价测试全绿；若某类不再支持，必须显式记录并获产品同意（不得静默丢内容，尤其表格/图片）。
@@ -418,8 +418,8 @@ cargo test --test note_crdt_test --test store_test  # 本次实测：10 + 10 pas
 8. **`[[` 补全触发条件**：只看光标前未闭合 `[[prefix`（`textBefore`，≤40 字符窗口）；折叠光标（正常打字）也能触发；已闭合 `[[x]]`/普通选中文字不触发。证据：`protocol.ts:75-77,85-122`；`editor_page_test.ts:425-465`。验收：等价用例；触发延迟 ≤300ms。
 9. **补全插入必须是可解析的 wikilink**：插入结果应能解析出 target id（现实现用 title 当 target，R5 是缺陷，迁移应修正为 `[[id|title]]`）。验收：`parse_links` 结果 target=真 id，`backlinks` 能查到。
 10. **标签联动**：标签 chip 触摸目标 ≥48dp（`comfortable`）；仅命中 `[[prefix` 或选中文本时高亮（不是任一 selection 全高亮）。证据：`components.tsx:355-382`；`protocol.ts:124-143`；`editor_page_test.ts:467-483,510-546`。验收：等价用例。
-11. **性能阈值**：真 WebView2 5 万字 `setContent` 79ms / 单字符输入 12.4ms / `getMarkdown` 21ms / 滚动 159FPS（`docs/migration-nsh-verification.md:13`；`docs/migration-nsh.md:209`）。迁移后原生编辑器需在真机同口径复测，不得劣化到用户可感知（具体阈值需产品/工程共同拍板；参考现 jsdom 护栏 20× 的「灾难性回归」思路，`editor_perf_test.ts:138-142`）。验收：真机脚本 + 记录机器/文档规模/口径。
-12. **布局断点与入口**：≥960 桌面三栏（侧栏 240 / 列表 360 / 编辑器第三栏）、<960 移动双 Tab + push 编辑；并补齐现状缺口 R13（桌面编辑已有笔记、移动新建笔记）。证据：`theme.ts:39-45`；`note_list.tsx:112-115,568-616,661-766`；G2.2（`docs/migration-nsh-construction.md:106`）。验收：两种宽度截图/`app.setViewport` 断言 + 入口可达性。
+11. **性能阈值**：真 WebView2 5 万字 `setContent` 79ms / 单字符输入 12.4ms / `getMarkdown` 21ms / 滚动 159FPS（`docs/archive/migration-nsh-verification.md:13`；`docs/archive/migration-nsh.md:209`）。迁移后原生编辑器需在真机同口径复测，不得劣化到用户可感知（具体阈值需产品/工程共同拍板；参考现 jsdom 护栏 20× 的「灾难性回归」思路，`editor_perf_test.ts:138-142`）。验收：真机脚本 + 记录机器/文档规模/口径。
+12. **布局断点与入口**：≥960 桌面三栏（侧栏 240 / 列表 360 / 编辑器第三栏）、<960 移动双 Tab + push 编辑；并补齐现状缺口 R13（桌面编辑已有笔记、移动新建笔记）。证据：`theme.ts:39-45`；`note_list.tsx:112-115,568-616,661-766`；G2.2（`docs/archive/migration-nsh-construction.md:106`）。验收：两种宽度截图/`app.setViewport` 断言 + 入口可达性。
 13. **保存失败不谎报已保存**：失败时显示未保存，不得静默「已保存」。证据：`App.tsx:250-252`。验收：注入保存失败，断言状态与重试路径。
 14. **列表联动**：保存后返回列表能看到更新（标题/预览/排序）。证据：`note_list.tsx` 的 `loadNotes` 与 `makeBackendSource`（`69-84,135-152`）；当前返回不强制刷新 → 迁移时建议修正为返回后刷新。验收：编辑标题→返回→列表标题变化。
 
@@ -487,4 +487,4 @@ git ls-files nsh-app/web/dist        # 空：生成物未入 git
 | 导出 API 面 | `rust-backend/src/api.rs:187-200,263-271,358-411`；`nsh-app/src/lib.rs:432-737` |
 | SQLite 读模型 | `rust-backend/src/store.rs:18-28,59-105,196-238,250-352,406-487,600-612` |
 | 同步包导入覆盖 | `rust-backend/src/sync.rs:2784-2913` |
-| 现有验证证据 | `docs/migration-nsh-verification.md:13,152-203,388-409`；`docs/migration-nsh-construction.md:111-141` |
+| 现有验证证据 | `docs/archive/migration-nsh-verification.md:13,152-203,388-409`；`docs/archive/migration-nsh-construction.md:111-141` |

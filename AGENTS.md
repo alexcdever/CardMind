@@ -115,7 +115,7 @@ node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 
 **应用日志**：Rust 侧 `debug_log` 的 `PlatformSink` 目前只输出到进程 **stderr**
 （`[cardmind:log] <RFC3339> platform=… event=… stage=…` 单行）并转发 `tracing`，
-**没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/handover-nsh-editor-2026-11-03.md` §6 第 10 条）；NSH 侧也没有打开目录的 API。
+**没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/archive/handover-nsh-editor-2026-11-03.md` §6 第 10 条）；NSH 侧也没有打开目录的 API。
 
 **数据目录**（`nsh-app/src/backend/store.rs::data_dir()`；旧版目录优先，用于数据共存）：
 
@@ -149,7 +149,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 | NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite（NSH 原生模块边界，无 FRB） |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
-| 编辑器迁移 | ✅ WebView+Tiptap 已替换：`RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）。P4-3b 起 WYSIWYG 内 `[[` 候选（suggestion）与 `cardmind://note/<id>` 链接「打开笔记」（bubbleMenu → `onNavigateNote`/`openEditor`）均已接通；P4-4 起自链（指向当前笔记）不再显示气泡菜单；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`（§25–§28）、`docs/handover-nsh-editor-2026-11-03.md` |
+| 编辑器迁移 | ✅ WebView+Tiptap 已替换：`RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）。P4-3b 起 WYSIWYG 内 `[[` 候选（suggestion）与 `cardmind://note/<id>` 链接「打开笔记」（bubbleMenu → `onNavigateNote`/`openEditor`）均已接通；P4-4 起自链（指向当前笔记）不再显示气泡菜单；进度/交接见 `docs/archive/progress-nsh-editor-2026-11-03.md`（§25–§28）、`docs/archive/handover-nsh-editor-2026-11-03.md` |
 | 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
 
 ## 文档地图
@@ -160,12 +160,8 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 - `docs/sync-network.md` — 同步网络设计（多设备同步的产品决策）
 - `docs/goal.md` — 当前任务的正式行为与验收标准
 - `docs/adr/` — 架构决策记录（长期决策的真相源）
-- `docs/migration-nsh.md` — NSH 迁移计划（路线、风险、阶段与闸门）
-- `docs/migration-nsh-construction.md` — NSH 迁移施工方案（逐项任务与完成状态）
-- `docs/migration-nsh-verification.md` — NSH 迁移验证记录（V1–V10 实测证据）
 - `docs/research/` — 仍服务于技术决策的研究资料
-- `docs/progress-nsh-editor-2026-11-03.md` — NSH 编辑器重构进度（P1–P4、提交、测试证据、已知风险与用户裁决）
-- `docs/handover-nsh-editor-2026-11-03.md` — 换设备开发的环境/命令/踩坑交接
+- `docs/archive/` — 已归档的历史文档（NSH 迁移计划/施工/验证、编辑器重构进度与交接、编辑器 Markdown 施工方案 06）
 - `docs/testing/` — 集成测试说明
 - `docs/standards/ai-collaboration.md` — 协作流程
 - `docs/standards/tdd.md` — TDD 规则
