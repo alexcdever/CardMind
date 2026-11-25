@@ -2,9 +2,12 @@ mod common;
 
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
-    decode_device_name_frame, default_device_name_with, detect_hostname, encode_device_name_frame,
-    load_device_name, normalize_hostname, store_device_name, SyncService,
+    decode_device_name_frame, default_device_name_with, encode_device_name_frame, load_device_name,
+    normalize_hostname, store_device_name, SyncService,
 };
+// 仅 unix 用例（下方 A3）使用；Windows 下引入会触发 unused_imports/clippy 失败
+#[cfg(unix)]
+use cardmind_backend::sync::detect_hostname;
 use common::{rt, temp_dir};
 
 /// 取不到任何主机名时的兜底串（与 `default_device_name_with` 一致）。
