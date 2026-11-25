@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 # CardMind pre-push 钩子（薄启动器）
-# 业务逻辑全部在 tool/git_gate.dart；本文件只负责：
+# 业务逻辑全部在 tool/git_gate.mjs；本文件只负责：
 #   1) 兼容 SKIP_LOCAL_CHECK=1 跳过
 #   2) 定位仓库根
-#   3) exec dart run tool/git_gate.dart pre-push（stdin ref 行原样传给 Dart 进程）
+#   3) exec node tool/git_gate.mjs pre-push（stdin ref 行原样传给 Node 进程）
 # 跳过方式（谨慎使用）:
 #   SKIP_LOCAL_CHECK=1 git push
 if [ "${SKIP_LOCAL_CHECK:-0}" = "1" ]; then
@@ -14,10 +14,10 @@ fi
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 # 不按 pubspec.yaml 存在性短路：4.6 起仓库不再有 pubspec.yaml（Flutter 链已删），
 # 旧短路会让本地门禁整体空转。
-if ! command -v dart >/dev/null 2>&1; then
-  echo "[pre-push] 未找到 dart 命令，无法执行本地质量门禁；请将 Dart/Flutter 加入 PATH" >&2
+if ! command -v node >/dev/null 2>&1; then
+  echo "[pre-push] 未找到 node 命令，无法执行本地质量门禁；请将 Node.js 加入 PATH" >&2
   exit 1
 fi
 
 cd "$repo_root" || exit 1
-exec dart run tool/git_gate.dart pre-push
+exec node tool/git_gate.mjs pre-push
