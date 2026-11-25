@@ -26,7 +26,7 @@ permissions:
 
 env:
   # CLI 版本必须等于 nsh-app/Cargo.toml 的 nsh-core/nsh-base 版本，否则 CLI 拒绝。
-  NSH_VERSION: 'v0.4.0'
+  NSH_VERSION: 'v0.7.0'
   CARGO_TERM_COLOR: always
 
 # 打包命令统一在 nsh-app/ 下执行；publish 需要仓库根路径时自行覆盖 working-directory。

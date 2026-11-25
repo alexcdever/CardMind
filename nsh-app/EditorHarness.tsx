@@ -313,7 +313,8 @@ function Harness(): JSX.Element {
   //        但 f8 统一接口；RichEditor headless 下 mod+a 不生效——0.4.0 实测）
   //   f9 → 选区落到下一条 `cardmind://note/` 链接（从第一条起轮转；
   //        WYSIWYG 链接气泡菜单）
-  //   f* 双键位：RichEditor 聚焦时吞 mod+shift+*（0.4.0 实测），f 键照常到达。
+  //   f* 双键位：RichEditor/源码 Editor 聚焦时都可能吞 mod+shift+*（0.7.0 起源码
+  //        编辑器也吞 mod+shift+l），f 键照常到达——测试优先用 f 键。
   effect(() => {
     const unbind = keymap.bind({
       f6: () => void dumpEditorValue(),

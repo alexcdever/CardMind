@@ -210,3 +210,20 @@ release 下曲线**仍是超线性**（500→303ms、1000→885ms、2000→3 849
 
 - 剖析脚本、`sample` 原始输出、`--trace` 日志、计数器插桩 diff、可验证 patch diff、upstream repro 两文件：`.git/pipeline/spikes/`（会话内归档，不进 Git）。
 - 组件侧表现与处置决定见 `docs/progress-nsh-editor-2026-11-03.md` §27。
+
+## 9. nsh 0.7.0 实测补记（2026-11-25，上游修复已合入）
+
+nsh 0.7.0 已包含上游对 RichEditor 挂载退化的修复（上游提交 b280fbe07 / PR #2276，1000 段基准 8.3 s → 216 ms）。在 `.worktrees/nsh-070` 升级验证中，**原 20k 字夹具未缩减**即全绿（此前 0.4.0 下需缩夹具才能过时限；0.5.1 轮因此退化被弃）：
+
+`editor_page.test.tsx` perf 用例（headless dev-build，墙钟 `Date.now()`，两次实测）：
+
+| 指标 | 0.7.0 第一次 | 0.7.0 第二次 | 0.4.0 基线 |
+|---|---|---|---|
+| open 20060 chars | 105 ms | 92 ms | — |
+| to-source p50 / p95 | 37 / 43 ms | 32 / 35 ms | ~8.3 s 量级 |
+| to-rich p50 / p95 | 96 / 102 ms | 91 / 95 ms | — |
+
+全量 `nsh test`：39/39 通过（56 s）。两个与 0.7.0 相关的非性能语义变化（均为上游行为变化，已在测试内按新口径断言）：
+
+- `RichEditor.insertContent(text, "markdown")` 在 0.7.0 走 `cmd::tiptap::insert_content`（块感知，对齐 Tiptap `insertContent`）：文档起点插入 `"Z"` 产生独立段落，不再并入原块（0.4.0 会并成 `# Z标题`）。
+- 源码 `Editor` 在 0.7.0 会吞掉 `mod+shift+l`（keymap 内建 `SelectAllOccurrences`，不再冒泡到 app 键位表）；测试探针统一改用 f 键。

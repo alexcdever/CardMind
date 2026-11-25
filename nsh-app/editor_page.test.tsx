@@ -2,7 +2,8 @@
 //
 // P4-3a 口径：默认 WYSIWYG（`RichEditor`，label:富文本编辑器，探针键 f6=全文
 // dump / f7=当前选区注入 append / f9=选中下一条笔记链接（轮转））；源码模式经「源码」
-// 切换（label:源码编辑器，探针键 mod+shift+e/l 仍可用）。P4-3b 起 `[[` 候选与
+// 切换（label:源码编辑器；0.7.0 起源码 Editor 也会吞 mod+shift+e/l，探针统一用 f 键）。
+// P4-3b 起 `[[` 候选与
 // `cardmind://` 链接跳转两条模式都有覆盖（WYSIWYG 走 suggestion 插件 + bubbleMenu）。
 //
 // 覆盖 task.md 标准 1–6、8 的行为面：
@@ -34,7 +35,7 @@ interface Scenario {
   failSave?: boolean | "once";
   candidates?: { id: string; title: string }[];
   /** `f7`/`mod+shift+l` 时注入的文本（构造「最后输入」用；rich=选区插入，
-   *  source=末尾插入）。 */
+   *  source=末尾插入；0.7.0 起源码模式下 mod+shift+l 被编辑器吞，用 f7）。 */
   append?: string;
   /** "desktop"：三栏场景（侧栏列表 + DesktopEditorPane），不经 nav.push editor。 */
   mode?: string;
@@ -302,8 +303,10 @@ test("editor: Markdown 往返保真（wikilink/代码块/段内换行/中文；�
   await app.wait(900);
   await app.waitUntil(() => app.storage()["test.saved"] !== undefined);
   const savedDoc = app.storage()["test.saved"] ?? "";
-  // f7 在初始选区（文档起点）注入 "Z" → 落进标题块成 "Z标题"（0.4.0 实测）。
-  expect(savedDoc).toContain("# Z标题");
+  // f7 在初始选区（文档起点）注入 "Z" → 0.7.0 起 insertContent(markdown) 按块语义插入：
+  // "Z" 成为独立段落，原标题保留为下一块（0.4.0 实测并入标题成 "Z标题"；0.7.0 对齐
+  // Tiptap insertContent 的块级语义，见 executor.md 验收标准 4 记录）。
+  expect(savedDoc).toContain("Z\n\n# 标题");
   expect(savedDoc).toContain("[别名](cardmind://note/note-2)");
   expect(savedDoc).toContain("行一\n行二");
   expect(savedDoc).toContain("```\nconst x = 1;\n```");
@@ -315,7 +318,7 @@ test("editor: Markdown 往返保真（wikilink/代码块/段内换行/中文；�
   await app.waitFor(RICH);
   const reopened = await dumpRich(app);
   expect(reopened.trimEnd()).toBe((app.storage()["test.saved"] ?? "").trimEnd());
-  expect(reopened).toContain("# Z标题");
+  expect(reopened).toContain("Z\n\n# 标题");
   expect(reopened).toContain("```\nconst x = 1;\n```");
 });
 
@@ -474,7 +477,9 @@ test("editor: 源码模式下编辑 → 切回 WYSIWYG 内容同步（源码改�
   expect(hasText(app, "新标题")).toBe(false);
   await toSource(app);
   // 源码模式末尾插入一段 Markdown（走探针键；等价在源码里输入）。
-  await app.keyboard.press("mod+shift+l");
+  // 0.7.0 起源码编辑器会吞 mod+shift+l（SelectAllOccurrences 命中后不再冒泡到 app
+  // 键位表），改用同一 appendAtEnd 路径的 f7；断言语义不变。
+  await app.keyboard.press("f7");
   await app.waitUntil(() =>
     (app.storage()["test.editorValue"] ?? "").includes("新标题"),
   );
