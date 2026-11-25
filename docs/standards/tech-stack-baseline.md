@@ -10,7 +10,7 @@
 ### 2.1 语言与运行时
 
 - NSH/TSX 前端：nsh `0.1.1`（`nsh-app/nsh.json`；UI 为 TSX + tiptap，`nsh-app/package.json`）。
-- Dart 工具链（仅 `tool/` 门禁/lint，不再是产品 UI）：Dart SDK `^3.12.2` 起可用；产品侧无 `pubspec.yaml`（4.6 已删除）。
+- Node.js 工具链（仅 `tool/` 门禁/lint，`.mjs` ESM、零 npm 依赖）：Node ≥ 20.12（Windows 下 .cmd 解析需 CVE-2024-27980 修复）；产品侧无 `pubspec.yaml`，Dart SDK 依赖已随 gate-js 移植移除。
 - Rust：Edition `2021`，以 `rust-backend/Cargo.toml` 为准。
 
 ### 2.2 跨语言桥接
@@ -30,7 +30,7 @@
 - 前端打包：`cd nsh-app && npm run build`（需 `NSH_SOURCE` 指向 nsh 源码 checkout）
 - Rust 测试：`cd rust-backend && cargo test --all-features --jobs 1`
 - Rust 静态检查：`cd rust-backend && cargo clippy --all-targets --all-features --workspace -- -D warnings`
-- 门禁：`dart run tool/git_gate.dart plan --staged` / `full`（pre-commit 快速路由；pre-push/full 跑 docs lint → rust clippy → rust test → build-lib → tsx test）
+- 门禁：`node tool/git_gate.mjs plan --staged` / `full`（pre-commit 快速路由；pre-push/full 跑 docs lint → rust clippy → rust test → build-lib → tsx test）
 
 ### 2.5 平台支持
 

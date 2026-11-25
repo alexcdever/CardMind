@@ -25,7 +25,7 @@
 # is commented out by default.
 #.vscode/
 
-# Dart tooling（门禁 tool/git_gate.dart 仍用 Dart）
+# Dart tooling（防御性保留：门禁 tool/ 已移植为 Node.js .mjs，仓库不再依赖 Dart SDK）
 **/doc/api/
 .dart_tool/
 .pub-cache/

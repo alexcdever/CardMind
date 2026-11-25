@@ -78,7 +78,7 @@ docs/
   adr/            架构决策记录
   research/       研究资料
   testing/        集成测试说明
-tool/             工具脚本（lint/、release/ python 发布脚本；门禁 git_gate.dart + src/git_gate/）
+tool/             工具脚本（lint/、release/ python 发布脚本；门禁 git_gate.mjs + src/git_gate/，Node.js 版）
 ```
 
 ## 关键命令
@@ -96,9 +96,9 @@ cd rust-backend && cargo test              # 全量测试
 cd rust-backend && cargo test --test sync_service_test  # 同步专项
 cd rust-backend && cargo build --release   # 发布构建
 
-# 门禁（pre-commit/pre-push 用；Dart 工具链仍保留 tool/）
-dart run tool/git_gate.dart plan --staged   # 查看 staged 触发的计划
-dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx）
+# 门禁（pre-commit/pre-push 用；Node.js 工具链，git_gate.mjs）
+node tool/git_gate.mjs plan --staged   # 查看 staged 触发的计划
+node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 ```
 
 > Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。

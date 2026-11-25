@@ -16,7 +16,7 @@
 5. **RichEditor 只在 main、0.3.0 没有**（0.3.0 `nsh-base` 源码无 `rich_editor` 模块；main `crates/nsh-base/src/lib.rs:51,280,385-389` 有），API 仍在迭代（task-3 报告：发布后 22 个提交）。main 路线现在**技术可行**（Lead 实测 main CLI 构建成功 `nsh 0.3.0 (45fb5de)`，9m06s；`nsh init --template mixed --nsh-source` 生成 path 依赖并由 CLI 把 nsh crates patch 到同一 checkout），但代价是 path 依赖 + 本地 CLI 维护。见 §7。
 6. **`NSH_SOURCE` 环境变量检查是 0.1.1 遗留**：0.2.0/0.3.0 的 `nsh-cli` 源码中不存在该 env（只有 `nsh init --nsh-source <DIR>`），crate 来源由 app crate 的 `Cargo.toml` 决定；`nsh-app/build-nsh.mjs:5-11` 的强制检查需要改写。见 §4.2。
 7. **nsh.json/capabilities**：编辑器移除后 `capabilities.webview` 可删（`webview` capability 是「能否显示网页」的总闸）；RichEditor/Editor 的复制走 `set_clipboard`，需要 `"clipboard": true`。`"rust": "."` 且无 `"root"` 是合法的 mixed 形态，不用加。见 §5。
-8. **测试/门禁是最大缺口**：`tool/git_gate.dart` 只跑 `npx tsx --test`，没有 `nsh check/build`；`.github/workflows` 4 个 workflow 完全没有 nsh/tsx 步骤（rust 质量只触发 `rust-backend/**`）。升级后旧测试断言（`nsh/webview`、`nsh/list`、`0.2.0` 版本号）会直接红。`nsh test` 只收 `*.test.ts(x)`（CardMind 是 `*_test.ts`，不会被发现），且会先跑 `cargo test`（会触发依赖旧数据库的 `coexist_notes_probe`）。见 §6。
+8. **测试/门禁是最大缺口**：`tool/git_gate.mjs` 只跑 `npx tsx --test`，没有 `nsh check/build`；`.github/workflows` 4 个 workflow 完全没有 nsh/tsx 步骤（rust 质量只触发 `rust-backend/**`）。升级后旧测试断言（`nsh/webview`、`nsh/list`、`0.2.0` 版本号）会直接红。`nsh test` 只收 `*.test.ts(x)`（CardMind 是 `*_test.ts`，不会被发现），且会先跑 `cargo test`（会触发依赖旧数据库的 `coexist_notes_probe`）。见 §6。
 9. **工作量分级**：非编辑器部分 **M（偏小，约 2–4 人日）**；编辑器 WebView→RichEditor 是 **L**（editor 子任务）。推荐顺序：**先 0.3.0 纯迁移闭环（不改编辑器）→ 再切 main + RichEditor**；「等下一个 release」不能作为阻塞项（无 roadmap，且 RichEditor 仍在迭代），但可以等有 RichEditor 的 release 记录进 `nsh-compat` 后再把依赖从 path 切回 crates.io。见 §7。
 
 ---
@@ -229,7 +229,7 @@ error probe-app asks for nsh-base ^0.2.0 and this nsh is 0.3.0:
 | CardMind 适配成本 | 现状可继续用 | 全量改写 L；建议**保留 node --test 做静态/单元断言**，另加少量 `*.test.tsx` smoke（导航/列表/设置/富文本）做升级回归；注意 `cargo test` 会跑到依赖本机旧 `%APPDATA%` 数据库的 `nsh-app/tests/coexist_notes_probe.rs`（`assert!(source.exists())`，无夹具即红），需 `#[ignore]`/环境变量门控或让 `nsh test` 不包含它 |
 | 结论 | 门禁继续跑 node --test 没问题 | `nsh test` 作为**补充**（真实运行时验证）而非替代；如采用，先解决文件命名 + coexist probe |
 
-### 6.3 门禁（`tool/git_gate.dart`）
+### 6.3 门禁（`tool/git_gate.mjs`）
 
 现状（读源码结论）：
 

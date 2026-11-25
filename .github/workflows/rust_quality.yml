@@ -52,7 +52,7 @@ jobs:
             ${{ runner.os }}-cargo-quality-
 
       - name: Check code formatting
-        # 与本地门禁 tool/src/git_gate/command.dart 的 Commands.formatRust()
+        # 与本地门禁 tool/src/git_gate/command.mjs 的 Commands.formatRust()
         # 同源：rust-backend 是多成员 workspace，缺 --all 时只格式化根 crate，
         # tool/boundary_scanner 会被静默跳过。
         run: |

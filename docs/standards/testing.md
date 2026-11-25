@@ -26,18 +26,18 @@
 
 1. **TSX 层**：`nsh-app` 全部 `*_test.ts`（node --test，`npx tsx --test "*_test.ts" "web/src/*_test.ts"`，在 `nsh-app/` 跑）。pre-commit 按 `nsh-app/**` 触发全量；不做文件级窄路由（单进程、秒级）。
 2. **Rust 层**：`rust-backend/tests/` 集成测试，pre-commit 按改动文件映射到具体 `cargo test --test <target>`（store/sync/pairing/trash 等关键词表 + `api::` 引用派生），无映射时 fail-closed 全量；pre-push/full 固定跑 `cargo test --all-features --jobs 1`。
-3. **文档契约层**：markdown 引用 lint（`tool/lint/markdown_references_linter.dart`），markdown 改动与全量 suite 均触发。
+3. **文档契约层**：markdown 引用 lint（`tool/lint/markdown_references_linter.mjs`），markdown 改动与全量 suite 均触发。
 4. **发布/验收层**：真机 GUI 与双实例 E2E 同步链路（NSH 壳 + Rust 后端），属发布/验收门禁，不塞入普通 push；当前无自动化 runner，按任务验收执行。
 
 ## 执行阶段
 
 | 阶段 | 执行内容 | 命令 |
 |------|---------|------|
-| commit（pre-commit） | format-first + 按 staged 变更分类的快速相关检查 | `dart run tool/git_gate.dart pre-commit` |
-| push（pre-push） | format-first + 完整 host suite（md lint、Rust clippy/test、build-lib、tsx test），支持 HEAD 缓存 | `dart run tool/git_gate.dart pre-push` |
+| commit（pre-commit） | format-first + 按 staged 变更分类的快速相关检查 | `node tool/git_gate.mjs pre-commit` |
+| push（pre-push） | format-first + 完整 host suite（md lint、Rust clippy/test、build-lib、tsx test），支持 HEAD 缓存 | `node tool/git_gate.mjs pre-push` |
 | release/验收 | 真机 GUI + 双实例 E2E 层 | 任务验收/发布门禁；不进 push |
-| 手动完整 suite | 与 pre-push 相同 | `dart run tool/git_gate.dart full` |
-| 查看计划 | 只打印将执行的命令，不执行 | `dart run tool/git_gate.dart plan --staged` |
+| 手动完整 suite | 与 pre-push 相同 | `node tool/git_gate.mjs full` |
+| 查看计划 | 只打印将执行的命令，不执行 | `node tool/git_gate.mjs plan --staged` |
 
 每个外部检查/测试进程都有 **15 分钟硬超时**（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；超时终止进程树并以非零退出。
 
@@ -73,7 +73,7 @@ Rust 测试用 `cargo test --all-features --jobs 1` 执行。关于 `--jobs 1` �
 
 ## 与质量门禁的关系
 
-- 测试补齐应与 `dart run tool/git_gate.dart` 的选择器规则保持一致（如 pairing/device 改动应覆盖 pairing 测试）
+- 测试补齐应与 `node tool/git_gate.mjs` 的选择器规则保持一致（如 pairing/device 改动应覆盖 pairing 测试）
 
 ## 非目标
 

@@ -2,6 +2,7 @@
 
 > 状态：**核心重构已完成并合并**。分支 `migration/nsh`；重构合并提交 `92e622b2`（本进度/交接文档提交在其之上）。
 > 交接环境与后续步骤见 [`docs/handover-nsh-editor-2026-11-03.md`](handover-nsh-editor-2026-11-03.md)。
+> 注：门禁链已于 gate-js 分支从 Dart 移植为 Node.js（`tool/git_gate.mjs` 等 `.mjs`）；本文中 backticked `tool/**.mjs` 路径为移植后文件名，`dart run …`/`dart format`/`dart analyze` 命令行为当时（Dart 版）实测记录，对应新命令见 `tool/README.md`。
 
 ## 1. 目标
 
@@ -188,7 +189,7 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
   `app.*.symbols`、`app.*.map.json`、`/android/app/{debug,profile,release}`、`macos/Podfile.lock`、
   `migrate_working_dir/`。保留 Dart 工具链条目（`.dart_tool/`、`.pub*`、`**/doc/api/`，门禁仍用 Dart）与
   通用条目（`/build/`、`/coverage/`、`.swiftpm/`）。
-- **门禁里的失效 glob**：`tool/src/git_gate/command.dart` 的 `tsx:test` 去掉已删的 `web/src/*_test.ts`
+- **门禁里的失效 glob**：`tool/src/git_gate/command.mjs` 的 `tsx:test` 去掉已删的 `web/src/*_test.ts`
   （`selector.dart` 注释、`tool/README.md` 同步）；行为不变（该 glob 早已匹配不到文件）。
 
 ### 改写
@@ -224,7 +225,7 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 
 ### 遗留（已解决：门禁收尾 worktree `gate-finish`）
 
-- **`docs:lint` 在基线上就 exit 1** → **已解决**（`40f22ba6` + `b15255eb`）：`tool/lint/markdown_references_linter.dart` 增加
+- **`docs:lint` 在基线上就 exit 1** → **已解决**（`40f22ba6` + `b15255eb`）：`tool/lint/markdown_references_linter.mjs` 增加
   「已删除历史链路」前缀豁免（`deletedHistoryPrefixes`：`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`、
   `nsh-app/web/`、`lib/`、`test/`、`integration_test/`、`docs/dev/`、平台工程、`.git/`、历史归档等，前缀匹配；
   tracked 的 `spike/nsh-editor-md-probe/` 不在豁免内），其它路径仍照常判定；linter 已改为**零依赖**（只 `dart:io`，
@@ -278,7 +279,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - `nsh-app/bridge_test.ts`、`events_close_test.ts`：把「断言存在/注册」改成断言「不存在」，保留 `BackendSync::close` 退出钩子与后端模块注册（启动契约）断言。
 - `nsh-app/skeleton_test.ts`：删除演示组件专用的 `nsh_base::theme`/`p_safe_area()`/`main.rs` 断言，改为断言「无 `#[component]`、无 `src/main.rs`」。
 - `nsh-app/singleton_test.ts`：`api.rs` 断言从「无 `&mut SyncService`」改为「文件已删除」。
-- `tool/lint/markdown_references_linter.dart`：把两个已删文件加入 `deletedHistoryPrefixes`（ADR/迁移/基线文档作为历史记录仍会引用）；自测补对应 token。
+- `tool/lint/markdown_references_linter.mjs`：把两个已删文件加入 `deletedHistoryPrefixes`（ADR/迁移/基线文档作为历史记录仍会引用）；自测补对应 token。
 - 启动失败日志从 `api.rs` 移入 `rust-backend/src/sync.rs::build`：`new_persistent`/`new` 构造失败时向全局兜底 sink 发 `startup.sync_service` failed 事件——保留 debug-log 验收 2（`startup_failure_emits_error_event`），且生产路径同样受益；日志失败不影响返回值。
 
 ### 文档
@@ -305,7 +306,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 
 - `api.rs` 删除前已确认**只有**上述 2 个 helper 被测试使用，无其它调用方；`SyncService`/`NoteStore` 本体未动。
 - 门禁 `tool/src/git_gate/{gate,selector}.dart` 仍按 `api::` 派生测试消费方：删除后集合为空，`api`/`frb` 分支的策展目标（`note_crdt_test`/`store_test`/`pairing_test`）仍在，不影响门禁选择。
-- `tool/src/git_gate/formatter.dart` 对 `frb_generated.rs` 的快照是「存在才纳入」；文件已删后自动为空操作（未改该工具，避免扩大本轮范围）。
+- `tool/src/git_gate/formatter.mjs` 对 `frb_generated.rs` 的快照是「存在才纳入」；文件已删后自动为空操作（未改该工具，避免扩大本轮范围）。
 
 ### 提交
 
@@ -820,7 +821,7 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 
 ### 问题
 
-`tool/src/git_gate/gate.dart` `_runStep` 失败分支只 `o.logError(r.stderr)`，`r.stdout` 被丢弃。`docs:lint`（`tool/lint/markdown_references_linter.dart`）把缺失引用清单写在 **stdout**，所以失败时 stderr 只剩 `[fail] docs:lint exit=1` 一行，看不到是哪条引用缺失。
+`tool/src/git_gate/gate.mjs` `_runStep` 失败分支只 `o.logError(r.stderr)`，`r.stdout` 被丢弃。`docs:lint`（`tool/lint/markdown_references_linter.mjs`）把缺失引用清单写在 **stdout**，所以失败时 stderr 只剩 `[fail] docs:lint exit=1` 一行，看不到是哪条引用缺失。
 
 ### 修复
 
@@ -858,7 +859,7 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 
 ### Commit
 
-单 commit `fix(gate): 失败步骤同时转发 stdout，docs:lint 缺失清单不再被吞`（2 files：`tool/src/git_gate/gate.dart` + 本文档）。
+单 commit `fix(gate): 失败步骤同时转发 stdout，docs:lint 缺失清单不再被吞`（2 files：`tool/src/git_gate/gate.mjs` + 本文档）。
 
 ### 合并与主树复验（`c1d5a6a7`，2026-11-06）
 
@@ -885,7 +886,7 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 建 `.gitattributes` 并把全部文本文件归一为 LF：
 
 - **`.gitattributes`**：`* text=auto` 按内容识别文本、提交归一为 LF；`*.db/loro/key/otf/ttf/woff(2)/png/jpe?g/gif/ico/icns/webp/pdf/zip/gz/jar` 显式 `binary`，防止 `text=auto` 漏判（`data/cardmind.db` 实测 `i/none` 未被自动识别）。仓库无 `bat`/`cmd`/`iss` 等必须 CRLF 的文件，**不设 `eol=crlf` 例外**（初稿曾给 `*.iss` 留 `eol=crlf`，会留一个 `w/crlf`，去掉后归零；`tool/installer/cardmind.iss` 为 Inno Setup 脚本，LF 下同样合法）。
-- **归一**：`git add --renormalize .` 处理 16 个文件 = 9 个 `w/crlf`（`.gitignore`、`AGENTS.md`、`docs/migration-nsh{,-construction,-verification}.md`、`docs/standards/spec-lifecycle.md`、`.workflow/update-download-install/executor-report.md`、`nsh-app/Cargo.toml`、`tool/src/git_gate/runner.dart`）+ 7 个 `w/mixed`（`CLAUDE.md`、`nsh-app/devices_page{.tsx,/constants.ts,/pair_sheets.tsx,/sections.tsx,/state.ts,/types.ts}`）。7 个 mixed 文件逐字节核对只有 `\r\n`+`\n`、无裸 `\r`，归一即纯行尾变化。
+- **归一**：`git add --renormalize .` 处理 16 个文件 = 9 个 `w/crlf`（`.gitignore`、`AGENTS.md`、`docs/migration-nsh{,-construction,-verification}.md`、`docs/standards/spec-lifecycle.md`、`.workflow/update-download-install/executor-report.md`、`nsh-app/Cargo.toml`、`tool/src/git_gate/runner.mjs`）+ 7 个 `w/mixed`（`CLAUDE.md`、`nsh-app/devices_page{.tsx,/constants.ts,/pair_sheets.tsx,/sections.tsx,/state.ts,/types.ts}`）。7 个 mixed 文件逐字节核对只有 `\r\n`+`\n`、无裸 `\r`，归一即纯行尾变化。
 
 ### 关键验证
 

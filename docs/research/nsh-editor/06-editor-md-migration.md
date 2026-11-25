@@ -262,7 +262,7 @@ onSelectionChange(或 completionTriggerCharacters 仅作"打开"信号)
 | 13 | `nsh-app/web/src/*_test.ts` | 删 | `md_fidelity_test.ts`（30）、`editor_perf_test.ts`（1）随归一化/WebView 删除；新的字节保真测试在 `nsh test` | 01 §5.2 |
 | 14 | `nsh-app/{build_script_test.ts,note_list_test.ts,skeleton_test.ts}` | 改 | 删 `build:web`/esbuild 断言；`nsh/list`→`nsh`；Cargo 0.3.0；桌面第三栏断言改为 EditorPage | 04 §6.1 |
 | 15 | `nsh-app/tests/coexist_notes_probe.rs` | 改 | `#[ignore]` 或环境变量门控（依赖本机旧 `%APPDATA%` DB；`nsh test` 会先跑 cargo test） | 01 §5.5；04 §6.2 |
-| 16 | `tool/git_gate.dart` | 改 | 加 `nsh check .`（在 `tsxTest` 前；它同时做 TS 类型 + app crate cargo check）；可选 `nsh test` | 04 §6.3 |
+| 16 | `tool/git_gate.mjs` | 改 | 加 `nsh check .`（在 `tsxTest` 前；它同时做 TS 类型 + app crate cargo check）；可选 `nsh test` | 04 §6.3 |
 | 17 | `.github/workflows/*` | 改（P2/P3） | 增加 `nsh-app/**` 触发与 `nsh check` job（现状 4 个 workflow 无 nsh/tsx 步骤） | 04 §6.4 |
 | 18 | `nsh-app/theme.ts` | 改（小） | 新增编辑器/预览 token（`editorFontSize:16`、`editorLineHeight:26`、`editorFontFamily`、预览 accent 等），避免硬编码 | `theme.ts` 现状 39-62 |
 | 19 | `AGENTS.md` / `docs/migration-nsh*.md` | 改（P3） | 技术栈 nsh 0.3.0；编辑器架构 WebView+Tiptap → Editor+TextView；迁移文档状态 | 01 F4 |
@@ -332,7 +332,7 @@ onSelectionChange(或 completionTriggerCharacters 仅作"打开"信号)
 
 ### 5.4 门禁/CI 调整（P2 完成时）
 
-1. `tool/git_gate.dart`：`nsh check .`（nsh-app，先于 `tsxTest`）→ `npx tsx --test`（静态测试）→ 可选 `nsh test .`（行为）。
+1. `tool/git_gate.mjs`：`nsh check .`（nsh-app，先于 `tsxTest`）→ `npx tsx --test`（静态测试）→ 可选 `nsh test .`（行为）。
 2. `.nsh/types` 是生成物：先 `nsh check`/`nsh build` 再跑依赖它的 node 测试（修复 fresh clone 红，04 §6.3）。
 3. `nsh test` 前先跑 `cargo test`：`coexist_notes_probe` `#[ignore]`；CI 如需真实数据共存验证，单独 job 显式 `--ignored`。
 4. `nsh test` 默认无头**不绘制**：视觉/布局冒烟用 `--target windows`（本地/pre-release），不进普通 push。

@@ -37,7 +37,7 @@ rust-backend/     Rust 核心
   src/            store, sync, discovery, debug_log
   tests/          集成测试
 docs/             文档（见「文档地图」）
-tool/             工具脚本（门禁 `git_gate.dart`、lint、发布脚本）
+tool/             工具脚本（门禁 `git_gate.mjs`、lint、发布脚本）
 ```
 
 ## 文档架构
@@ -62,8 +62,8 @@ npm run build                           # 打包 bundle（node build-nsh.mjs）
 cd rust-backend && cargo test           # 测试
 cd rust-backend && cargo build --release # 发布构建
 
-# 门禁（Dart 工具链）
-dart run tool/git_gate.dart plan --staged
+# 门禁（Node.js 工具链）
+node tool/git_gate.mjs plan --staged
 ```
 
 > 默认 headless：`nsh check` / `npx tsx --test` / `nsh test` / `cargo test` 都不弹窗；`nsh run` 与

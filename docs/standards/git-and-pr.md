@@ -2,13 +2,13 @@
 
 ## 本地质量门禁（分层）
 
-CardMind 的本地质量门禁由 `dart run tool/git_gate.dart` 统一实现，Git Hook 只做薄启动：
+CardMind 的本地质量门禁由 `node tool/git_gate.mjs` 统一实现，Git Hook 只做薄启动：
 
 ### pre-commit（快速相关门禁）
 
 每次 `git commit` 执行：
 
-1. **format-first**：先格式化全部源码（Dart `tool/` + Rust `cargo fmt --all`），formatter 必须真的写入文件；
+1. **format-first**：先格式化全部源码（Node.js `tool/` + Rust `cargo fmt --all`），formatter 必须真的写入文件；
 2. 若 formatter 改变了任何文件：立即阻止提交，输出改变路径，提示检查并重新暂存/提交，本轮不执行任何测试；**不自动 `git add`**，也不修改 index；
 3. 按 staged 文件（`git diff --cached`）分类执行快速检查：文档走 markdown references lint；`nsh-app/**` 走 TSX 全量（`npx tsx --test`，在 `nsh-app/` 跑）；Rust 文件走 `cargo clippy -D warnings` + 相关 test target；Cargo manifest/共享配置/无法分类文件 fail closed，升级为对应技术栈全量 host 测试（Rust 全量 + TSX 全量）。
 
