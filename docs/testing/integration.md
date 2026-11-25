@@ -9,7 +9,7 @@
 - **TSX 前端测试**：`nsh-app/*_test.ts` 与 `nsh-app/web/src/*_test.ts`，
   node --test 经 tsx 加载，门禁 `tsx:test` 全量跑：
   `cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`。
-- **Rust 集成测试**：`rust-backend/tests/`，`cargo test --all-features --jobs 1`；
+- **Rust 集成测试**：`nsh-app/tests/`，`cargo test --all-features --jobs 1`；
   pre-commit 门禁按 staged 文件映射到具体 target。
 - **数据共存探针**：`nsh-app/data_coexist_test.ts`（静态断言 + cargo 探针读夹具 db）。
 

@@ -7,15 +7,15 @@
 | 层 | 技术 | 版本 |
 |---|------|------|
 | 前端 | NSH + TSX（nsh-app） | nsh 0.7.0（`nsh-app/Cargo.toml` nsh-core/nsh-base；`RichEditor` 做 WYSIWYG 默认编辑 + `Editor` 做 Markdown 源码模式，无 WebView/Tiptap） |
-| 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
-| CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
-| 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
-| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`rust-backend/Cargo.lock`，bundled） |
+| 核心逻辑 | Rust | Edition 2024（`nsh-app/Cargo.toml`；与 NSH 外壳同一个 `nsh-app-cardmind` crate，内核在 `nsh-app/src/kernel/`）；CI 用 stable，仓库未固定 toolchain |
+| CRDT 存储 | Loro | 1.17.1（`nsh-app/Cargo.lock`） |
+| 网络层 | iroh | 1.4.1（`nsh-app/Cargo.lock`；直连模式，默认禁用 relay） |
+| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`nsh-app/Cargo.lock`，bundled） |
 
 ## 架构
 
 ```
-NSH (TSX UI, nsh-app) ←→ Rust (业务后端，rust-backend)
+NSH (TSX UI, nsh-app) ←→ Rust 内核（nsh-app/src/kernel，与 TSX 外壳同一个 nsh-app-cardmind crate）
                           ├─ LoroDoc (真实信源)
                           ├─ SQLite (读模型)
                           └─ iroh (网络同步)
@@ -63,14 +63,12 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   src/backend/    TSX 暴露模块：core(Backend)/store/notes/sync/pairing + dto + globals(单例)
   *_test.ts、*.test.tsx  TSX 测试（`npx tsx --test` 跑 node --test；`*.test.tsx` 由 `nsh test` 跑）
   EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 专用入口（假 repository/source，不碰真实 DB/网络）
-rust-backend/     Rust 核心 (v2)
-  src/
-    store.rs      LoroDoc + SQLite 存储
-    sync.rs       iroh 网络同步
-    discovery.rs  mDNS 设备发现
-    debug_log.rs  调试日志（stderr 单行 + tracing，无落盘）
-    lib.rs        入口
-  tests/          集成测试 (store, sync, discovery, note_crdt, pairing, relay, trash 等)
+  src/kernel/     Rust 核心内核（2026-11 由 rust-backend/ 并入；与外壳同一 crate）：
+                  store(LoroDoc + SQLite)/sync(iroh 网络同步)/discovery(mDNS)/qr/debug_log
+  tests/          Rust 集成测试（原 rust-backend/tests 全部并入：store、sync、discovery、
+                  note_crdt、pairing、relay、trash 等 21 个 target + common/mod.rs +
+                  coexist_notes_probe.rs）
+  examples/       key_to_nodeid.rs（device.key → iroh EndpointId 调试工具）
 docs/
   product.md      产品定义
   sync-network.md 同步网络设计
@@ -92,9 +90,9 @@ cd nsh-app && nsh test --filter editor    # 编辑器行为测试（假 reposito
 cd nsh-app && npm run build               # 打包（node build-nsh.mjs；不再需要 NSH_SOURCE）
 
 # Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
-cd rust-backend && cargo test              # 全量测试
-cd rust-backend && cargo test --test sync_service_test  # 同步专项
-cd rust-backend && cargo build --release   # 发布构建
+cd nsh-app && cargo test                # 全量测试
+cd nsh-app && cargo test --test sync_service_test    # 同步专项
+cd nsh-app && cargo build --release     # 发布构建
 
 # 门禁（pre-commit/pre-push 用；Node.js 工具链，git_gate.mjs）
 node tool/git_gate.mjs plan --staged   # 查看 staged 触发的计划
@@ -107,8 +105,8 @@ node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 
 ## 运行态动态库
 
-- NSH 版把 `cardmind-backend` 作为 crate 直接编进 `nsh-app`（`nsh-app/Cargo.toml` 的 path 依赖），**运行时不需要任何动态库复制**。
-- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `rust-backend/target/release/`（lib rlib；不产动态库），不复制到任何运行态路径。
+- NSH 版后端就在 `nsh-app` 自身 crate 里（`nsh-app/Cargo.toml` 的 `rust = '.'` 指向本 crate；内核模块在 `nsh-app/src/kernel/`），**运行时不需要任何动态库复制**。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `nsh-app/target/release/`（lib rlib；不产动态库），不复制到任何运行态路径。
 - Flutter 时代的 host runtime 同步（复制到 `build/<platform>/…`）已随平台工程删除：门禁侧 `tool/src/git_gate/` 下的 `host_build.*` 已删，`build/` 目录也不存在。
 
 ## 日志与数据目录（排查必读）

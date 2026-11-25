@@ -11,11 +11,11 @@
 
 - NSH/TSX 前端：nsh `0.1.1`（`nsh-app/nsh.json`；UI 为 TSX + tiptap，`nsh-app/package.json`）。
 - Node.js 工具链（仅 `tool/` 门禁/lint，`.mjs` ESM、零 npm 依赖）：Node ≥ 20.12（Windows 下 .cmd 解析需 CVE-2024-27980 修复）；产品侧无 `pubspec.yaml`，Dart SDK 依赖已随 gate-js 移植移除。
-- Rust：Edition `2021`，以 `rust-backend/Cargo.toml` 为准。
+- Rust：Edition `2024`，以 `nsh-app/Cargo.toml` 为准（内核在 `nsh-app/src/kernel/`，与外壳同一 crate）。
 
 ### 2.2 跨语言桥接
 
-- 前端与 Rust 的边界由 NSH 运行时承载（nsh-app 的 Rust crate 直接嵌入业务后端，`rust = "."` 指 `nsh-app/Cargo.toml` → `rust-backend`）。
+- 前端与 Rust 的边界由 NSH 运行时承载（`nsh-app` 的 Rust crate 直接嵌入业务内核：`rust = '.'` 指 `nsh-app/Cargo.toml`，内核模块在 `nsh-app/src/kernel/`）。
 - 旧 Flutter Rust Bridge 桥（`flutter_rust_bridge` + `lib/src/rust/` 生成代码 + `flutter_rust_bridge.yaml`）已随 4.6 整删；`rust-backend/src/frb_generated.rs`、`rust-backend/src/api.rs` 与 `flutter_rust_bridge` 依赖已随 P1 死代码清理删除。
 
 ### 2.3 数据与同步内核
@@ -28,8 +28,8 @@
 
 - 前端测试：`cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`（node --test，经 tsx 加载 TS）
 - 前端打包：`cd nsh-app && npm run build`（需 `NSH_SOURCE` 指向 nsh 源码 checkout）
-- Rust 测试：`cd rust-backend && cargo test --all-features --jobs 1`
-- Rust 静态检查：`cd rust-backend && cargo clippy --all-targets --all-features --workspace -- -D warnings`
+- Rust 测试：`cd nsh-app && cargo test --all-features --jobs 1`
+- Rust 静态检查：`cd nsh-app && cargo clippy --all-targets --all-features --workspace -- -D warnings`
 - 门禁：`node tool/git_gate.mjs plan --staged` / `full`（pre-commit 快速路由；pre-push/full 跑 docs lint → rust clippy → rust test → build-lib → tsx test）
 
 ### 2.5 平台支持
@@ -37,7 +37,7 @@
 - 产品目标平台：移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。
 - 仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，仓库不含任何平台工程目录；iOS 属目标平台，工程目录亦未建立（见 `AGENTS.md` 当前状态）。平台产物统一由 `nsh package . --target <platform>` 产出。
 - 构建链路入口为 `nsh-app/build-nsh.mjs`（`npm run build`），走 0.3.0 CLI 的 `nsh build . -o out`，不需要 `NSH_SOURCE`；旧 tool/build.dart（`app`/`lib`/`run` 子命令，Flutter 构建链）已随 4.6 删除。
-- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `rust-backend/target/release/`）；NSH 把 backend 作为 crate 编进 `nsh-app`，运行时不依赖动态库复制。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `nsh-app/target/release/`）；NSH 把 backend 作为 crate 编进 `nsh-app`，运行时不依赖动态库复制。
 
 ## 3. 核心三方依赖
 
@@ -55,23 +55,23 @@
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| loro | 1（锁定 1.13.6） | CRDT 数据内核 |
-| iroh | 1（锁定 1.0.2） | P2P 网络同步；dev-dependency 启用 `test-utils`，用本地 relay 服务器做离线验证 |
-| tokio | 1（锁定 1.52.3） | 异步运行时（`features = ["full"]`） |
-| anyhow | 1（锁定 1.0.103） | 错误传播与上下文 |
+| loro | 1（锁定 1.17.1） | CRDT 数据内核 |
+| iroh | 1（锁定 1.4.1） | P2P 网络同步；dev-dependency 启用 `test-utils`，用本地 relay 服务器做离线验证 |
+| tokio | 1（锁定 1.54.1） | 异步运行时（`features = ["full"]`） |
+| anyhow | 1（锁定 1.0.104） | 错误传播与上下文 |
 | atomic-write-file | 0.2（锁定 0.2.3） | 原子写文件 |
-| mdns-sd | 0.20（锁定 0.20.1） | mDNS 设备发现 |
+| mdns-sd | 0.20（锁定 0.20.3） | mDNS 设备发现 |
 | rusqlite | 0.31（锁定 0.31.0） | 本地 SQLite 读模型（`bundled`） |
 | chrono | 0.4（锁定 0.4.45） | 时间戳（`serde` 特性） |
-| uuid | 1（锁定 1.23.4） | UUID（`v7`、`serde` 特性） |
-| rand | 0.8（锁定 0.8.6） | 配对码生成的密码学随机 |
+| uuid | 1（锁定 1.28.0） | UUID（`v7`、`serde` 特性） |
+| rand | 0.8（锁定 0.8.8） | 配对码生成的密码学随机 |
 | tracing | 0.1（锁定 0.1.44） | 结构化调试日志 |
 | base64 | 0.22（锁定 0.22.1） | URL-safe base64 编解码 |
-| libc | 0.2（锁定 0.2.186） | 主机名探测（`gethostname`） |
+| libc | 0.2（锁定 0.2.191） | 主机名探测（`gethostname`） |
 
 说明：
 
-- 上表只列 `rust-backend/Cargo.toml` 的直接依赖；“锁定”版本取自 `rust-backend/Cargo.lock`。
+- 上表只列 `nsh-app/Cargo.toml` 的内核直接依赖（NSH 运行时的 `nsh-core`/`nsh-base` 不在此表）；“锁定”版本取自 `nsh-app/Cargo.lock`。
 - `serde`、`thiserror`、`postcard` 等仅作为传递依赖进入 `Cargo.lock`，不是本仓库的直接依赖，因此不在此登记。
 
 ## 4. 版本治理与变更规则

@@ -7,7 +7,7 @@
 | 层 | 技术 |
 |---|------|
 | 前端 | NSH 0.3.0 + TSX（原生 `Editor` 做 Markdown 源编辑，无 WebView/Tiptap） |
-| 核心逻辑 | Rust (cardmind-backend) |
+| 核心逻辑 | Rust（`nsh-app-cardmind` crate，内核在 `nsh-app/src/kernel/`） |
 | CRDT 存储 | Loro 1.13 |
 | 网络层 | iroh 1.0（直连模式，默认禁用 relay）+ mDNS |
 | 查询层 | SQLite（Rust 端 rusqlite） |
@@ -33,9 +33,9 @@ nsh-app/          NSH 前端（TSX 页面 + 组件）
   components.tsx / navigation.tsx / theme.ts
   *_test.ts、*.test.tsx  TSX 测试（`npx tsx --test` / `nsh test`）
   EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 入口（假 repository，不碰真实 DB/网络）
-rust-backend/     Rust 核心
-  src/            store, sync, discovery, debug_log
-  tests/          集成测试
+  src/kernel/     Rust 内核（2026-11 由 rust-backend/ 并入；store、sync、discovery、qr、debug_log）
+  tests/          Rust 集成测试（含原 rust-backend/tests 全部 target）
+  examples/       key_to_nodeid.rs
 docs/             文档（见「文档地图」）
 tool/             工具脚本（门禁 `git_gate.mjs`、lint、发布脚本）
 ```
@@ -59,8 +59,8 @@ nsh test --filter editor                # 编辑器行为测试（headless，假
 npm run build                           # 打包 bundle（node build-nsh.mjs）
 
 # Rust
-cd rust-backend && cargo test           # 测试
-cd rust-backend && cargo build --release # 发布构建
+cd nsh-app && cargo test                # 测试
+cd nsh-app && cargo build --release     # 发布构建
 
 # 门禁（Node.js 工具链）
 node tool/git_gate.mjs plan --staged
