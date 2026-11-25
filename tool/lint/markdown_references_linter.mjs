@@ -37,8 +37,8 @@ export class MissingReference {
 
 /// 不参与文档路径检查的目录段（按「相对扫描根」的路径段判断）：
 ///
-/// 1. 各 AI 工具与技能包目录（`.claude/`、`.codex/`、`.agents/skills/` 等）：
-///    里面是外部导入内容，引用的是「被服务项目」的路径，不是本仓库的路径；
+/// 1. 各 AI 工具与技能包目录：里面是外部导入内容，引用的是「被服务项目」的
+///    路径，不是本仓库的路径；
 /// 2. 扫描根之下的 `.worktrees/`（其它 checkout）、`.pipeline/` 等非源码目录；
 /// 3. 依赖与构建缓存目录（`node_modules/`、`build/`、`target/` 等）。
 export const ignoredDirectoryNames = new Set([

@@ -173,61 +173,16 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 - `docs/standards/tech-stack-baseline.md` — 技术栈基线
 - `docs/standards/nsh-automation-anchors.md` — NSH 自动化锚点（`testID`/`accessibilityLabel`/`role`、`nsh test` 选择器与 harness）
 
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-This project is indexed by GitNexus as **CardMind** (5743 symbols, 14295 relationships, 366 execution flows).
-
-> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
-
-## Always Do
-
-- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
-- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "master"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "master" --repo .`.
-- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
-- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
-- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
-- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
-
-## Never Do
-
-- NEVER edit a function, class, or method before MCP/CLI impact analysis.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit before MCP/CLI graph change analysis.
-
-## Resources
-
-| Resource | Use for |
-| --- | --- |
-| `gitnexus://repo/CardMind/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/CardMind/clusters` | All functional areas |
-| `gitnexus://repo/CardMind/processes` | All execution flows |
-| `gitnexus://repo/CardMind/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-| --- | --- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
 
 ## 流水线项目经验（必读）
 
-执行任何编码任务前，先用 pipeline 技能（位于 $HOME/.agents/skills/pipeline/，经 Skill 工具加载）走项目流水线：摸底 → 建 worktree → 写任务描述 → 派执行子代理 → 独立审查子代理 → 合并 → 主树复验 → 清场。本仓库的 CardMind 专属 overlay 经验（provider 策略、环境前置、实机测试、发布流程）见 cardmind-* 系列技能。
+执行任何编码任务前，先用 pipeline 技能（经 Skill 工具加载）走项目流水线：摸底 → 建 worktree → 写任务描述 → 派执行子代理 → 独立审查子代理 → 合并 → 主树复验 → 清场。overlay 经验（provider 策略、环境前置、实机测试、发布流程）在派发时一并写进子代理 prompt。
 
 ## UI/交互工作约定（必读）
 
-凡是涉及 **UI 或交互** 的功能——新增/修改页面、组件、布局、导航、表单、空态/加载/错误态、确认流程、触摸目标、可达性、主题与令牌——**必须用 `ui-ux-pro-max` 技能辅助**，而不是凭经验直接写：
+凡是涉及 **UI 或交互** 的功能——新增/修改页面、组件、布局、导航、表单、空态/加载/错误态、确认流程、触摸目标、可达性、主题与令牌——以本仓库两份标准为唯一基准，不凭经验直接写：
 
-- **设计/新建页面或组件前**：先读 `docs/standards/ui-style-guide.md` 与 `docs/standards/design-tokens.md` 作为基准，再用 `python .agents/skills/ui-ux-pro-max/scripts/search.py "<关键词>" --stack react`（按需加 `--domain ux|style|color|typography|icons|web`）取实现建议，落到 `nsh-app/theme.ts` 的 `colors/spacing/radii`（迁移自 CardMindTokens/Spacing/Radii）而不是硬编码值。
-- **改 UI/交互前**：对照该技能的 Pre-Delivery Checklist（触摸目标 ≥48dp、无 emoji 当图标、色不作唯一状态指示、阴影/圆角纪律、disabled 态）逐条核，确认不违反。
-- **交付/审查 UI 前**：按该技能 Quick Reference §1–§3 + CardMind 规范做一次走查；UI 审查任务派发子代理时把这份清单 + 两份标准文档作为审查基准一并传入。
-- 该技能的搜索脚本只需 Python 3（Windows 用 `python`）；不可用时就按上面两份标准文档人工核对，不阻断。
+- **基准文档**：`docs/standards/ui-style-guide.md`（布局、层级、交互约定）与 `docs/standards/design-tokens.md`（颜色/间距/圆角/字阶）。所有视觉值取 `nsh-app/theme.ts` 的 `colors/spacing/radii`（迁移自 CardMindTokens/Spacing/Radii），禁止硬编码。
+- **改 UI/交互前逐条核 Pre-Delivery Checklist**：触摸目标 ≥48dp；不用 emoji 当图标（用 `components/glyph` 图标集）；颜色不作唯一状态指示（配文字/图标）；阴影与圆角遵循令牌层级；disabled 态有明确视觉反馈。
+- **交付/审查 UI 前**：按上述两份标准 + 本清单做一次走查；UI 审查任务派发子代理时，把清单与两份标准文档作为审查基准一并传入 prompt。
 

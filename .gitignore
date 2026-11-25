@@ -46,6 +46,5 @@ rust-backend/lcov.info
 
 # Local agent private context
 AGENT.local.md
-.gitnexus
 sync-verify/target/
 .env
