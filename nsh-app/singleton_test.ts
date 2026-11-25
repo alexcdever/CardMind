@@ -17,7 +17,6 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '..');
 const read = (...p: string[]) => readFileSync(path.join(...p), 'utf8');
 
 // P2-1 起后端接缝拆到 `src/backend/*.rs`；把 lib.rs + 各模块源拼起来，保持原断言语义。
@@ -30,7 +29,7 @@ function readModuleSources(): string {
 const lib = readModuleSources();
 const cargo = read(here, 'Cargo.toml');
 const tsx = read(here, 'App.tsx');
-const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');
+const syncRs = read(here, 'src', 'kernel', 'sync.rs');
 
 /** 所有 `#[module] impl X { .. }` 块：名字 + 块体。 */
 function moduleBlocks(): { name: string; body: string }[] {
@@ -50,11 +49,11 @@ function storeModuleName(): string {
 }
 
 describe('1.7 全局单例（OnceLock）', () => {
-  it('Cargo.toml 以 path 依赖引入 cardmind-backend', () => {
-    assert.match(
+  it('Cargo.toml 不再有 cardmind-backend path 依赖（2026-11 合并为单 crate）', () => {
+    assert.doesNotMatch(
       cargo,
-      /cardmind-backend\s*=\s*\{[^}]*path\s*=/,
-      'nsh-app/Cargo.toml 应有 `cardmind-backend = { path = ".." }`',
+      /cardmind-backend\s*=/,
+      'nsh-app/Cargo.toml 不应再有 cardmind-backend（内核已在 src/kernel/）',
     );
   });
 
@@ -113,8 +112,8 @@ describe('1.7 SyncService 签名放宽（&mut self → &self）', () => {
 
   it('api.rs 已删除（P1 死代码清理，导出层不再存在）', () => {
     assert.ok(
-      !existsSync(path.join(repoRoot, 'rust-backend', 'src', 'api.rs')),
-      'rust-backend/src/api.rs 应已删除',
+      !existsSync(path.join(here, 'src', 'kernel', 'api.rs')),
+      'nsh-app/src/kernel/api.rs 应已删除',
     );
   });
 });

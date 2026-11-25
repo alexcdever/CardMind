@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, '..');
 const read = (...p: string[]) => readFileSync(path.join(...p), 'utf8');
 
 // P2-1 起后端接缝拆到 `src/backend/*.rs`；把 lib.rs + 各模块源拼起来，保持原断言语义。
@@ -18,8 +17,8 @@ function readModuleSources(): string {
 }
 
 const lib = readModuleSources();
-const storeRs = read(repoRoot, 'rust-backend', 'src', 'store.rs');
-const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');
+const storeRs = read(here, 'src', 'kernel', 'store.rs');
+const syncRs = read(here, 'src', 'kernel', 'sync.rs');
 
 function moduleBlocks(): { name: string; body: string }[] {
   return [...lib.matchAll(/#\[module\]\s*\n\s*impl\s+(\w+)\s*\{([\s\S]*?)\n\}/g)].map(
@@ -110,7 +109,7 @@ describe('行类型 DTO（nsh-app 侧镜像 + JsObject derive）', () => {
   });
 });
 
-describe('防污染：rust-backend 内核不依赖 nsh-core / JsObject', () => {
+describe('防污染：src/kernel 内核不依赖 nsh-core / JsObject', () => {
   it('store.rs 与 sync.rs 不含 nsh_core / nsh-core / JsObject', () => {
     for (const [name, src] of [['store.rs', storeRs], ['sync.rs', syncRs]] as const) {
       assert.ok(!src.includes('nsh_core'), `${name} 不应出现 nsh_core`);
