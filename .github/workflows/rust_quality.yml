@@ -52,17 +52,13 @@ jobs:
             ${{ runner.os }}-cargo-quality-
 
       - name: Check code formatting
-        # 与本地门禁 tool/src/git_gate/command.mjs 的 Commands.formatRust()
-        # 同源：rust-backend 是多成员 workspace，缺 --all 时只格式化根 crate，
-        # tool/boundary_scanner 会被静默跳过。
+        # 与本地门禁 tool/src/git_gate/command.mjs 的 Commands.formatRust() 同源。
         run: |
           cd rust-backend
           cargo fmt --all -- --check
 
       - name: Run cargo clippy
-        # 与本地门禁 Commands.clippy() 逐字同源（含 --workspace）：rust-backend
-        # 是多成员 workspace，省略 --workspace 时 clippy 只 lint 根 crate
-        # （cardmind-backend），tool/boundary_scanner 会被静默跳过。
+        # 与本地门禁 Commands.clippy() 逐字同源（含 --workspace）；rust-backend 现为单 crate workspace，--workspace 等价只跑根 crate。
         run: |
           cd rust-backend
           cargo clippy --all-targets --all-features --workspace -- -D warnings
@@ -145,9 +141,8 @@ jobs:
         continue-on-error: true
 
       - name: Generate Rust LCOV report
-        # 排除 frb_generated 与辅助 crate，另加 --packages cardmind-backend：
-        # rust-backend 是多成员 workspace（含 tool/boundary_scanner），不限定
-        # 根包会把辅助 crate 一并算进覆盖率。产出 rust-backend/lcov.info。
+        # --packages cardmind-backend 限定根包（rust-backend 现为单 crate
+        # workspace，本参数保持与历史一致）。产出 rust-backend/lcov.info。
         run: |
           cd rust-backend
           cargo tarpaulin --packages cardmind-backend \

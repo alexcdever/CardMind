@@ -3,17 +3,14 @@ name = "cardmind-backend"
 version = "0.1.0"
 edition = "2021"
 
-# 门禁的 cargo fmt --all / clippy --all-targets 以 workspace 为单位执行；
-# tool/boundary_scanner 此前是独立 crate（自带 Cargo.lock），不在 workspace
-# 时 fmt/clippy 静默跳过它。纳入 workspace 后统一受门禁覆盖。
+# 独立 workspace：与 nsh-app（空 [workspace] 表 + path 依赖）保持各自独立，
+# nsh-app 编进 app 时只链接 lib 产物，不受这里的 workspace 配置影响。
 [workspace]
-members = [".", "tool/boundary_scanner"]
 
 [lib]
-crate-type = ["cdylib", "staticlib", "lib"]
+crate-type = ["lib"]
 
 [profile.release]
-# macOS 27 已验证：strip = true 的 dylib dlopen 正常，__LINKEDIT 结尾 16 字节对齐。
 strip = true
 
 [features]

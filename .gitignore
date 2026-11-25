@@ -37,13 +37,9 @@
 rust/target/
 rust-backend/target/
 
-rust/tool/boundary_scanner/target/
-rust-backend/tool/boundary_scanner/target/
 rust/lcov.info
 rust-backend/lcov.info
 
-# Test boundary scanner reports
-tmp/
 
 # Brainstorming visual companion files
 .superpowers/

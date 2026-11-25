@@ -20,7 +20,6 @@ export const FileCategory = Object.freeze({
   tsxSource: Object.freeze({ name: 'tsxSource', index: 2 }),
   rustSource: Object.freeze({ name: 'rustSource', index: 3 }),
   rustTest: Object.freeze({ name: 'rustTest', index: 4 }),
-  rustTool: Object.freeze({ name: 'rustTool', index: 5 }),
   toolScript: Object.freeze({ name: 'toolScript', index: 6 }),
   manifest: Object.freeze({ name: 'manifest', index: 7 }),
   platform: Object.freeze({ name: 'platform', index: 8 }),
@@ -93,7 +92,6 @@ export function classifyPath(path) {
   if (_isTsxTest(p)) return FileCategory.tsxTest;
   if (_isTsxSource(p)) return FileCategory.tsxSource;
   if (_isRustTest(p)) return FileCategory.rustTest;
-  if (_isRustTool(p)) return FileCategory.rustTool;
   if (_isRustSource(p)) return FileCategory.rustSource;
   if (_isToolScript(p)) return FileCategory.toolScript;
   if (_isManifest(p)) return FileCategory.manifest;
@@ -135,13 +133,6 @@ function _isTsxSource(p) {
 
 function _isRustTest(p) {
   return p.startsWith('rust-backend/tests/') && p.endsWith('.rs');
-}
-
-// rust-backend/tool/ 下的辅助 crate 源码（boundary_scanner 等，已纳入
-// workspace）：属 Rust 范畴但不是产品源码，归 rustTool——只跑 clippy，
-// 不升级 rust:test:full。
-function _isRustTool(p) {
-  return p.startsWith('rust-backend/tool/') && p.endsWith('.rs');
 }
 
 function _isRustSource(p) {
@@ -243,17 +234,6 @@ function _contribute(b, file, index) {
       }
       break;
     }
-    case FileCategory.rustTool: {
-      // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy；
-      // 同时跑该 crate 自身 cargo test（rustToolTest）。与 rust-backend/src/**
-      // 产品源码的测试映射无关。
-      b.add(Commands.clippy());
-      const toolPkg = _rustToolPackage(file);
-      if (toolPkg != null) {
-        b.add(Commands.rustToolTest(toolPkg));
-      }
-      break;
-    }
     case FileCategory.rustSource: {
       b.add(Commands.clippy());
       const targets = _relatedRustTargets(file, index);
@@ -273,16 +253,8 @@ function _contribute(b, file, index) {
     case FileCategory.manifest: {
       // Cargo manifest fail-closed 为 Rust 全量（clippy + cargo test 全量）；
       // endsWith 匹配覆盖 rust-backend/Cargo.toml 与 rust-backend/Cargo.lock。
-      const toolPkg = _rustToolPackage(file);
-      if (toolPkg != null) {
-        // rust-backend/tool/ 子树 crate 的 manifest（boundary_scanner 等）：
-        // 跑该 crate 自身 cargo test，不升级 rust:test:full。
-        b.add(Commands.clippy());
-        b.add(Commands.rustToolTest(toolPkg));
-      } else {
-        b.add(Commands.clippy());
-        b.add(Commands.rustFullTest());
-      }
+      b.add(Commands.clippy());
+      b.add(Commands.rustFullTest());
       break;
     }
     case FileCategory.platform:
@@ -402,16 +374,4 @@ export function rustTestTargetName(path) {
     return rest.substring(0, slash);
   }
   return null;
-}
-
-/**
- * `rust-backend/tool/<pkg>/…` → cargo package 名；不在子树内返回 null。
- * （workspace 成员 crate 名与目录名一致：`tool/boundary_scanner`。）
- */
-function _rustToolPackage(file) {
-  const prefix = 'rust-backend/tool/';
-  if (!file.startsWith(prefix)) return null;
-  const rest = file.substring(prefix.length);
-  const slash = rest.indexOf('/');
-  return slash === -1 ? null : rest.substring(0, slash);
 }

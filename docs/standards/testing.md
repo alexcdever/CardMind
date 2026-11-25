@@ -11,7 +11,7 @@
 - TSX 前端测试位于 `nsh-app/`（根级 `*_test.ts`）与 `nsh-app/web/src/`（`*_test.ts`），node --test 经 tsx 加载运行
 - Rust 集成测试位于 `rust-backend/tests/`
 - Cargo 仅自动发现 `rust-backend/tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
-- Rust 边界扫描 crate 位于 `rust-backend/tool/boundary_scanner`（cargo workspace 成员，由 cargo 覆盖）
+
 - 旧 Flutter 测试目录（`test/`、`integration_test/`）已随迁移 4.6 整删
 
 ## 命名规则

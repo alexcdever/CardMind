@@ -603,17 +603,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "boundary_scanner"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "serde",
- "serde_json",
- "syn 2.0.118",
- "walkdir",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

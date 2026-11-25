@@ -108,8 +108,8 @@ node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 ## 运行态动态库
 
 - NSH 版把 `cardmind-backend` 作为 crate 直接编进 `nsh-app`（`nsh-app/Cargo.toml` 的 path 依赖），**运行时不需要任何动态库复制**。
-- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `rust-backend/target/release/`（Windows `cardmind_backend.dll`，macOS/Linux 为对应 dylib/so），不复制到任何运行态路径。
-- Flutter 时代的 host runtime 同步（复制到 `build/<platform>/…`）已随平台工程删除：门禁侧 `tool/src/git_gate/` 下的 `host_build.dart` 已删，`build/` 目录也不存在。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `rust-backend/target/release/`（lib rlib；不产动态库），不复制到任何运行态路径。
+- Flutter 时代的 host runtime 同步（复制到 `build/<platform>/…`）已随平台工程删除：门禁侧 `tool/src/git_gate/` 下的 `host_build.*` 已删，`build/` 目录也不存在。
 
 ## 日志与数据目录（排查必读）
 

@@ -2,8 +2,9 @@
 
 本目录保留工具入口：markdown 引用 lint、release Python 脚本与本地 Git 质量门禁。
 （Flutter 构建/质量链——build.dart、quality.dart、feature_test.dart、debug_pool、
-test_boundary_scanner——已随迁移 4.6 整删；Rust 边界扫描是独立 crate
-`rust-backend/tool/boundary_scanner`，由 cargo 覆盖，不在本目录。）
+test_boundary_scanner——已随迁移 4.6 整删；Rust 边界扫描 crate
+`rust-backend/tool/boundary_scanner` 本次也随死代码清理移除，本目录只剩
+门禁与 lint。）
 
 ## git_gate.mjs - 本地质量门禁 CLI（Node.js，不再需要 Dart SDK）
 
@@ -29,7 +30,7 @@ node tool/git_gate.mjs plan --files <path...>  # 按给定文件打印计划
 
 **suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
 
-**staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`rust-backend/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；`rust-backend/tool` → clippy + 该 crate 自身 test；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
+**staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`rust-backend/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
 
 ## lint/markdown_references_linter.mjs - 文档路径检查
 

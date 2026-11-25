@@ -62,8 +62,8 @@ export const Commands = {
       label: 'docs:lint',
     }),
 
-  // 必须带 --workspace：rust-backend 现是多成员 workspace，省略时 clippy
-  // 只 lint 根 crate（cardmind-backend），tool/boundary_scanner 会被静默跳过。
+  // rust-backend 现是单 crate workspace（无 tool/ 成员），--workspace 等价于
+  // 只跑根 crate cardmind-backend；保留参数与 CI rust_quality.yml 逐字同源。
   clippy: () =>
     new GateCommand({
       executable: 'cargo',
@@ -97,17 +97,6 @@ export const Commands = {
       arguments: ['test', '--all-features', '--jobs', '1'],
       kind: CommandKind.rustTest,
       label: 'rust:test:full',
-      workingDirectory: 'rust-backend',
-    }),
-
-  // rust-backend/tool/ 下辅助 crate（boundary_scanner 等已纳入 workspace）
-  // 的自身测试：`-p <package>`，不升级 rust:test:full。
-  rustToolTest: (pkg) =>
-    new GateCommand({
-      executable: 'cargo',
-      arguments: ['test', '-p', pkg],
-      kind: CommandKind.rustTest,
-      label: `rust:test:tool:${pkg}`,
       workingDirectory: 'rust-backend',
     }),
 
