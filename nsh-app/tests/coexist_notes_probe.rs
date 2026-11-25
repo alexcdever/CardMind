@@ -3,7 +3,7 @@
 //! `cardmind.db`，断言 `list_notes()` 能读出旧笔记。
 //!
 //! 与 spawn `nsh trace` + 解析 trace 的旧方案相比，这是更短、更确定的路径：
-//! 直接调用 `cardmind-backend` 的真实读路径，不经过 GUI/打包。
+//! 直接调用内核（`nsh_app_cardmind::kernel::store`）的真实读路径，不经过 GUI/打包。
 //!
 //! 安全：`NoteStore::new` 会对打开的库做 `ALTER TABLE` 迁移 + 重建 FTS，
 //! 所以**绝不能**直接打开真实数据目录里的 `cardmind.db`——必须先复制到
@@ -15,7 +15,7 @@
 //! ```
 //! 环境变量 `COEXIST_FIXTURE_DB` 覆盖夹具源（默认 `%APPDATA%\com.cardmind\cardmind\cardmind.db`）。
 
-use cardmind_backend::store::NoteStore;
+use nsh_app_cardmind::kernel::store::NoteStore;
 
 /// 旧版 Flutter 数据目录里的 `cardmind.db`（只读，本测试不修改它）。
 fn legacy_db() -> std::path::PathBuf {
@@ -25,7 +25,8 @@ fn legacy_db() -> std::path::PathBuf {
             return pb;
         }
     }
-    let appdata = std::env::var("APPDATA").expect("APPDATA 环境变量不可读（Windows 数据目录推导依赖）");
+    let appdata =
+        std::env::var("APPDATA").expect("APPDATA 环境变量不可读（Windows 数据目录推导依赖）");
     std::path::PathBuf::from(appdata)
         .join("com.cardmind")
         .join("cardmind")

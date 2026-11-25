@@ -4,14 +4,63 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+# 单个 workspace：NSH 外壳（src/backend/）与 CardMind 内核（src/kernel/）同属一个
+# crate，不再有跨 workspace 的 path 依赖，也不再需要两份 Cargo.lock / target/。
 [workspace]
+
+[profile.release]
+strip = true
+
+[features]
+# 测试后门：SyncService 上 *_for_test / set_current_pairing_session 等
+# #[doc(hidden)] 方法仅此 feature（或 cfg(test)）下编译进 lib。
+# tests/*.rs 是独立 crate、对 lib 不启用 cfg(test)，故靠下方 dev-dependency
+# 自引用在 `cargo test` 时自动启用本 feature；release 构建不含这些方法。
+test-utils = []
 
 [dependencies]
 nsh-core = "0.7.0"
 nsh-base = "0.7.0"
 
-# 真后端（施工方案 1.7 + 1.4）：`nsh-app` 是独立 workspace（空 `[workspace]` 表），
-# 用 path 依赖指向 rust-backend 的 lib 产物；两个 workspace 保持独立互不影响。
-cardmind-backend = { path = "../rust-backend" }
-# `SyncService::new()` 是 async，全局单例用 tokio::sync::Mutex 惰性初始化。
-tokio = { version = "1", features = ["sync"] }
+loro = "1"
+iroh = "1"
+# iroh 1.x 把 mDNS 地址解析挪到独立 crate：用于"测试连接/同步"时在局域网内
+# 按 peer id 解析对端当前地址，弥补 last_ips 过期后无兜底寻址的问题。
+iroh-mdns-address-lookup = "0.6"
+# `SyncService::new()` 是 async，全局单例用 tokio::sync::Mutex 惰性初始化；
+# 内核的同步/发现任务与测试还需要 tokio 的 full 能力集。
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+atomic-write-file = "0.2"
+mdns-sd = "0.20"
+rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v7", "serde"] }
+# 配对码生成（密码学随机，OsRng；任务 G 配对安全要求）
+rand = "0.8"
+# 结构化调试日志（debug-log 任务；PlatformSink 经 tracing 输出）
+tracing = "0.1"
+# 签名配对凭证：URL-safe base64（无 padding）编解码
+base64 = "0.22"
+# 主机名探测（gethostname(3)；设备名不再依赖 GUI 进程不继承的 HOSTNAME 环境变量）
+libc = "0.2"
+# 配对二维码（QR 图片保存/识别任务）：
+# qrcode 生成模块矩阵 + PNG 渲染；rqrr 扫码解码；image 提供 PNG 编解码与灰度缓冲。
+qrcode = { version = "0.14", default-features = false }
+rqrr = "0.10"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# 系统文件对话框（保存/打开自选路径；自选语义要求，不写死目录）。
+# rfd 无 Android 后端（qr.rs 的 save/decode 两函数在 Android 下走 stub，
+# 返回可读 Err）；platform-gated 避免 Android target 拉这个编译不过的依赖。
+[target.'cfg(not(target_os = "android"))'.dependencies]
+rfd = "0.15"
+
+[dev-dependencies]
+# 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），
+# 用于离线验证 relay 跨网段连接行为，避免依赖公共 relay 的网络可达性。
+iroh = { version = "1", features = ["test-utils"] }
+# dev-dependency 自引用（cargo 支持）：让 tests/*.rs 外部 crate 编译时
+# 对 lib 启用 test-utils feature，使 #[cfg(feature = "test-utils")] 的
+# 测试后门方法对集成测试可见；对正常 build/release 无影响。
+nsh-app-cardmind = { path = ".", features = ["test-utils"] }
