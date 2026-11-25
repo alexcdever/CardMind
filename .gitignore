@@ -35,10 +35,8 @@
 
 # Rust build artifacts
 rust/target/
-rust-backend/target/
 
 rust/lcov.info
-rust-backend/lcov.info
 
 
 # Brainstorming visual companion files
