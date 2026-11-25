@@ -17,8 +17,10 @@ function readModuleSources(): string {
 }
 
 const lib = readModuleSources();
-const storeRs = read(here, 'src', 'kernel', 'store.rs');
-const syncRs = read(here, 'src', 'kernel', 'sync.rs');
+// 内核在 `src/kernel/*.rs`；防污染断言应扫全部内核源，而不是只挑 store/sync 两个文件。
+const kernelDir = path.join(here, 'src', 'kernel');
+const kernelFiles = readdirSync(kernelDir).filter((f) => f.endsWith('.rs')).sort();
+const kernelSources = kernelFiles.map((f) => [f, read(kernelDir, f)] as [string, string]);
 
 function moduleBlocks(): { name: string; body: string }[] {
   return [...lib.matchAll(/#\[module\]\s*\n\s*impl\s+(\w+)\s*\{([\s\S]*?)\n\}/g)].map(
@@ -110,8 +112,8 @@ describe('行类型 DTO（nsh-app 侧镜像 + JsObject derive）', () => {
 });
 
 describe('防污染：src/kernel 内核不依赖 nsh-core / JsObject', () => {
-  it('store.rs 与 sync.rs 不含 nsh_core / nsh-core / JsObject', () => {
-    for (const [name, src] of [['store.rs', storeRs], ['sync.rs', syncRs]] as const) {
+  it('内核全部源文件不含 nsh_core / nsh-core / JsObject', () => {
+    for (const [name, src] of kernelSources) {
       assert.ok(!src.includes('nsh_core'), `${name} 不应出现 nsh_core`);
       assert.ok(!src.includes('nsh-core'), `${name} 不应出现 nsh-core`);
       assert.ok(!src.includes('JsObject'), `${name} 不应出现 JsObject`);
