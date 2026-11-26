@@ -10,7 +10,7 @@ const read = (name: string) => readFileSync(path.join(here, name), 'utf8');
 const manifest = read('Cargo.toml');
 const lockfile = read('Cargo.lock');
 
-/** nsh-app 的 TSX 源码（本目录下的 *.tsx；测试文件都是 *_test.ts，不会混进来）。 */
+/** 本 app 的 TSX 源码（本目录下的 *.tsx；测试文件都是 *_test.ts，不会混进来）。 */
 const topLevelTsx = readdirSync(here)
   .filter((f) => f.endsWith('.tsx'))
   .map((f) => ({ name: f, code: read(f) }));
@@ -253,7 +253,7 @@ describe('TSX 源码的 NSH 导入面（0.3.0：只剩 nsh 与 nsh/base）', () 
     assert.match(editor, /accessibilityLabel=/, 'Editor 应有 accessibilityLabel');
   });
 
-  it('nsh-app/web/ 不存在（WebView 静态站点已删）', () => {
+  it('web/ 不存在（WebView 静态站点已删）', () => {
     assert.equal(existsSync(path.join(here, 'web')), false, 'web/ 仍存在');
   });
 });
@@ -294,7 +294,7 @@ describe('.gitignore', () => {
   it('包含 node_modules/、.nsh/、target/', () => {
     for (const entry of ['node_modules/', '.nsh/', 'target/']) {
       assert.ok(
-        gitignore.split(/\r?\n/).includes(entry),
+        gitignore.split(/\r?\n/).some((line) => line === entry || line === `/${entry}`),
         `.gitignore 缺少 ${entry}`,
       );
     }

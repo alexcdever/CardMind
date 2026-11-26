@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-/// `nsh-app/tests` 目录（编译期已知 crate 根）。
+/// `tests/` 目录（编译期已知 crate 根）。
 fn tests_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests")
 }

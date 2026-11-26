@@ -44,7 +44,7 @@ describe('2.1 components.tsx — 6 个核心组件导出', () => {
   it('components.tsx 存在', () => {
     assert.ok(
       existsSync(path.join(here, COMPONENTS)),
-      'nsh-app/components.tsx 不存在',
+      'components.tsx 不存在',
     );
   });
 
@@ -144,7 +144,7 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
   const app = read(APP);
 
   it('navigation.tsx 有路由定义 + createNavStack', () => {
-    assert.ok(existsSync(path.join(here, NAVIGATION)), 'nsh-app/navigation.tsx 不存在');
+    assert.ok(existsSync(path.join(here, NAVIGATION)), 'navigation.tsx 不存在');
     assert.match(nav, /createNavStack/, 'navigation.tsx 应用 createNavStack');
     assert.match(
       nav,

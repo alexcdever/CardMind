@@ -12,7 +12,7 @@
 // ⑤ `.nsh/types/app/native.d.ts`（`nsh build` 生成）导出 `dataDir`；
 // ⑥ 运行时：把旧版 `cardmind.db` 复制进 `%TEMP%` 夹具，用真后端 `NoteStore`
 //    打开并 `list_notes()` 读出旧笔记——Rust 集成测试
-//    `nsh-app/tests/coexist_notes_probe.rs`（`cargo test -p nsh-app-cardmind --test coexist_notes_probe`）
+//    `tests/coexist_notes_probe.rs`（`cargo test -p nsh-app-cardmind --test coexist_notes_probe`）
 //    承载真正的打开/断言，本测试 spawn 它并断言 exit 0 + `note_count = N`。
 //    比起 `nsh trace`+解析 trace，这条路更短、更确定（不打包 GUI）。
 //    `NoteStore::new` 会就地迁移（ALTER TABLE + 重建 FTS），故**必须用副本**
@@ -163,7 +163,7 @@ describe('4.4 数据共存：NSH 壳直接打开旧版数据目录', () => {
           ...process.env,
           // 显式把夹具源传给探针（不依赖探针内部默认路径推导）。
           COEXIST_FIXTURE_DB: realDb,
-          // 复用 nsh-app/target 的编译产物提速（target 在 .gitignore，不污染提交）。
+          // 复用 target 的编译产物提速（target 在 .gitignore，不污染提交）。
           CARGO_TARGET_DIR:
             process.env.CARGO_TARGET_DIR ?? path.join(here, 'target'),
         },

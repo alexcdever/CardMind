@@ -5,7 +5,7 @@
 // 依赖一致，否则 0.3.0 CLI 会在命令入口直接拒绝。这里先做一次版本一致性校验，
 // 给出明确的错误（含两个版本号）并以非 0 退出。
 //
-// 用法：node build-nsh.mjs（在 nsh-app/ 下，等价于 `nsh build . -o out`）。
+// 用法：node build-nsh.mjs（在仓库根，等价于 `nsh build . -o out`）。
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';

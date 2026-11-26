@@ -7,7 +7,7 @@
 //! 4. `endpoint.close()` 已执行——close 返回后 `local_addrs()` 仍可调用不 panic
 //!    （endpoint 已关闭但句柄可查询；真正的「无 Aborting ungracefully」证据是
 //!    iroh `Endpoint::close().await` 已被调用，源码断言见
-//!    `nsh-app/events_close_test.ts`）。
+//!    `events_close_test.ts`）。
 //!
 //! 无 IPv4 网络接口的机器上 `SyncService::new()` 仍能 bind 成功（iroh 绑定
 //! localhost），故本测试不要求网卡。
@@ -36,7 +36,7 @@ fn close_stops_receiver_then_closes_endpoint() {
             "close() 后接收器应已停止（stop_receiver 先于 endpoint.close）"
         );
         // `endpoint.close().await` 已执行：`close()` 体内 endpoint.close 在
-        // stop_receiver 之后（源码断言见 nsh-app/events_close_test.ts）；本用例
+        // stop_receiver 之后（源码断言见 events_close_test.ts）；本用例
         // 真跑 close() 不 panic 即证明 endpoint 优雅关闭路径成立。
     });
 }

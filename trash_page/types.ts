@@ -1,6 +1,6 @@
 // 回收站页类型（自 trash_page.tsx 纯结构拆出，声明逐字保留）。
 
-/** 回收站行（与 nsh-app/src/lib.rs 的 NoteDto 镜像一致）。 */
+/** 回收站行（与 src/lib.rs 的 NoteDto 镜像一致）。 */
 export interface TrashNoteDto {
   id: string;
   title: string;

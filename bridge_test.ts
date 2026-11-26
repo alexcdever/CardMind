@@ -1,5 +1,5 @@
 // Phase-1 演示组件已删除（P1 死代码清理）：读文件断言，不跑构建。
-// ①`nsh-app/src/lib.rs` 不再声明 App / Bridge / BridgeEvent / BridgeProps，
+// ①`src/lib.rs` 不再声明 App / Bridge / BridgeEvent / BridgeProps，
 //   native() 也不再注册它们（演示脚手架无 TSX 消费方）；
 // ②App.tsx 不渲染 Phase 1 演示脚手架（`<App/>` 大黑条、`PhaseOneStatus`
 //   调试面板、`<Bridge>` 事件行）——启动只挂真实页面栈；

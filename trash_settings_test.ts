@@ -54,7 +54,7 @@ const codeOnly = (src: string) =>
 
 describe('2.3 trash_page.tsx — 存在与回收站四操作', () => {
   it('trash_page.tsx 存在', () => {
-    assert.ok(existsSync(trashPath), 'nsh-app/trash_page.tsx 不存在');
+    assert.ok(existsSync(trashPath), 'trash_page.tsx 不存在');
   });
 
   it('列出回收站（BackendNotes.storeTrashList）', () => {
@@ -158,7 +158,7 @@ describe('2.3 trash_page.tsx — 令牌纪律', () => {
 
 describe('2.4 settings_page.tsx — 存在与设置四项', () => {
   it('settings_page.tsx 存在', () => {
-    assert.ok(existsSync(settingsPath), 'nsh-app/settings_page.tsx 不存在');
+    assert.ok(existsSync(settingsPath), 'settings_page.tsx 不存在');
   });
 
   it('设备名读取（BackendPairing.getDeviceName）', () => {

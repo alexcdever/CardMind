@@ -1,6 +1,6 @@
 // 构建脚本固化验收测试：读文件断言 + 一次真实子进程行为断言。
 // ①package.json 的 build 直接走 `node build-nsh.mjs`，不含已删除的 `build:web`；
-// ②WebView/Tiptap 链路（nsh-app/web/）整目录不存在，devDependencies 不再含
+// ②WebView/Tiptap 链路（web/）整目录不存在，devDependencies 不再含
 //   esbuild/jsdom/tiptap；
 // ③script 产物路径约定不含 web/dist；
 // ④build-nsh.mjs 不要求 NSH_SOURCE（0.1.1 遗留），且在 CLI 版本与 Cargo 依赖
@@ -61,7 +61,7 @@ describe('package.json 构建 scripts（P2：WebView/Tiptap 链路已删）', ()
 });
 
 describe('WebView 静态站点已删除', () => {
-  it('nsh-app/web/ 不存在（编辑器改原生 Editor）', () => {
+  it('web/ 不存在（编辑器改原生 Editor）', () => {
     assert.equal(existsSync(path.join(here, 'web')), false, 'web/ 仍存在');
   });
 });

@@ -3,7 +3,7 @@ import { BackendNotes, BackendStore } from "app/native";
 import { NEW_NOTE_IDS } from "../editor_text";
 import type { EditorRepository } from "./types";
 
-/** 真后端实现（`nsh-app/src/lib.rs` 导出的 `BackendNotes` / `BackendStore`）。 */
+/** 真后端实现（`src/lib.rs` 导出的 `BackendNotes` / `BackendStore`）。 */
 export const backendEditorRepository: EditorRepository = {
   noteGet: (id) => BackendNotes.noteGet(id),
   noteCreate: (id, content) => BackendNotes.noteCreate(id, content),

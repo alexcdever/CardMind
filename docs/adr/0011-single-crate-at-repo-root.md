@@ -1,4 +1,4 @@
-# ADR 0011 — Rust 内核并入 nsh-app，只保留一个 crate
+# ADR 0011 — Rust 内核单 crate，源码在仓库根
 
 - **日期**：2026-11-26
 - **状态**：已采纳
@@ -123,3 +123,33 @@ edition 2024）。**
 - 不改测试断言的**产品语义**（只改导入路径与「旧目录不存在」这类结构断言）；
 - 不合并 TSX 外壳与内核的模块划分（`src/backend/` 仍是唯一对 TSX 暴露的接缝）；
 - 不引入多入口（HTTP/MCP/CLI）——[ADR 0002](0002-rust-single-backend-core-multi-entry.md) 的方向仍未被采纳。
+
+---
+
+## 2026-11-26 追加：nsh-app/ 层摊平到仓库根
+
+本 ADR 通过之后不久，`nsh-app/` 目录层被整体移除：TSX 页面/组件、`src/`（含 `src/kernel/`
+与 `src/backend/`）、`tests/`、`examples/`、`Cargo.toml`、`Cargo.lock`、`nsh.json`、
+`package.json`、`tsconfig.json`、`build-nsh.mjs`、全部 `*_test.ts`/`*.test.tsx` 经 `git mv`
+平移到仓库根（历史保留）；`nsh-app/` 目录不复存在，连同 `spike/` 探针目录一并删除
+（`nsh test` 会递归编译其中的用例，且未跟踪）。
+
+- **动机**：`nsh-app/` 是 Flutter 时代留下的最后一层目录壳——Flutter 链已整删、`rust-backend/`
+  已并入，它只剩「前端在子目录」的历史语义。`nsh check/build/package/test/run` 只认 cwd，
+  `rust: "."` 语义是「与本文件同目录的 crate」，扁平化后该值不变。唯一硬约束是 `nsh test`：
+  它从仓库根递归发现所有 `*.test.ts(x)` 且 `--filter` 挡不住编译错误，故 `spike/`（内含
+  `nsh-editor-md-probe` 的 `.test.tsx` 探针）一并删除，历史引用由 linter 豁免兜住。
+- **被否掉的做法**：保留中间层（如改名 `app/`）只是换个名字——目录层级本身的转录成本
+  （门禁 `workingDirectory`、CI `paths`、文档里的 `cd nsh-app`）一分不少，无收益。
+- **crate 仍只有一个**：`nsh-app-cardmind`，只是位置从 `nsh-app/` 变为仓库根；`nsh.json` 的
+  `rust = '.'` 指向根 `Cargo.toml`，内涵不变。
+- **门禁与 CI 目录口径再次归零**：`tool/src/git_gate/` 的 `workingDirectory` 全部改为仓库根；
+  三个 workflow 去掉 `working-directory: nsh-app` / `cd nsh-app`，`paths` 收窄到根级源码目录
+  + manifest；markdown linter 的构建产物前缀改为 `target/`、`.nsh/`、`out/`，已删除历史前缀
+  新增 `'nsh-app/'` 与 `'spike/'`。
+- **本 ADR 正文中的 `nsh-app/…` 路径**（如 `nsh-app/src/kernel/`、`nsh-app/tests/`）是合并时刻
+  的真实布局，保留为历史叙述；当前等价物是去掉 `nsh-app/` 前缀的同路径（`src/kernel/`、
+  `tests/`、…）。
+- **本文文件名随之改为 `0011-single-crate-at-repo-root.md`**；ADR 0005、0010 及更早文档中的
+  `nsh-app/` 引用与 `docs/archive/**` 一样保持原样，由 linter 的 `deletedHistoryPrefixes`
+  豁免。

@@ -100,7 +100,7 @@ describe('1.3 BackendPairing 模块', () => {
   });
 });
 
-describe('行类型 DTO（nsh-app 侧镜像 + JsObject derive）', () => {
+describe('行类型 DTO（外壳侧镜像 + JsObject derive）', () => {
   it('NoteRow/LinkRow/PairedDeviceRow/PeerInfo 有 JsObject DTO', () => {
     for (const dto of ['NoteDto', 'LinkDto', 'PairedDeviceDto', 'PeerInfoDto']) {
       assert.match(lib, new RegExp(`pub struct ${dto}\\b`), `lib.rs 应有 ${dto}`);

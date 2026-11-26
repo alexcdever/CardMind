@@ -1,9 +1,9 @@
 // 全局单例 + Backend.Store 验收测试（施工方案 1.7 + 1.4）：读文件断言，不跑构建。
 //
 // 1.7（全局单例改造）：`#[module]` 的函数不能带 receiver，状态必须放全局——
-//   ① `nsh-app/src/lib.rs` 有 `static STORE: OnceLock<NoteStore>` 与
+//   ① `src/lib.rs` 有 `static STORE: OnceLock<NoteStore>` 与
 //      `static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>>`；
-//   ② `nsh-app/Cargo.toml` 不再有 `cardmind-backend` path 依赖（2026-11 内核并入本 crate）；
+//   ② `Cargo.toml` 不再有 `cardmind-backend` path 依赖（2026-11 内核并入本 crate）；
 //   ③ `SyncService` 的 `&mut self` 已放宽为 `&self`（只剩 `Drop` 的 `fn drop(&mut self)`）；
 //   ④ `api.rs` 已随 P1 死代码清理删除（不再有 `svc: &mut SyncService`）。
 // 1.4（Backend.Store 模块）：`#[module]` 导出 store 的 4 个函数（nsh 的模块对象名
@@ -53,7 +53,7 @@ describe('1.7 全局单例（OnceLock）', () => {
     assert.doesNotMatch(
       cargo,
       /cardmind-backend\s*=/,
-      'nsh-app/Cargo.toml 不应再有 cardmind-backend（内核已在 src/kernel/）',
+      'Cargo.toml 不应再有 cardmind-backend（内核已在 src/kernel/）',
     );
   });
 
@@ -113,7 +113,7 @@ describe('1.7 SyncService 签名放宽（&mut self → &self）', () => {
   it('api.rs 已删除（P1 死代码清理，导出层不再存在）', () => {
     assert.ok(
       !existsSync(path.join(here, 'src', 'kernel', 'api.rs')),
-      'nsh-app/src/kernel/api.rs 应已删除',
+      'src/kernel/api.rs 应已删除',
     );
   });
 });
@@ -179,7 +179,7 @@ describe('.nsh/types/app/native.d.ts（nsh build 生成）', () => {
 
   it('store 模块的 4 个函数生成 Promise 签名', (t) => {
     if (!existsSync(dts)) {
-      t.skip('缺 .nsh/types/app/native.d.ts，需先 `nsh build nsh-app -o nsh-app/out`');
+      t.skip('缺 .nsh/types/app/native.d.ts，需先 `nsh build . -o out`');
       return;
     }
     const decl = readFileSync(dts, 'utf8');

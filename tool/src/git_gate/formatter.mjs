@@ -100,27 +100,32 @@ export class Formatter {
   }
 
   async formatRust() {
-    if (!fs.existsSync(path.join(this.repoRoot, 'nsh-app'))) {
+    // Rust 源码在仓库根（2026-11-26 去掉 nsh-app/ 层后）：src/ 或 tests/
+    // 存在即视为有 Rust 源码，跑 cargo fmt --all。
+    if (
+      !fs.existsSync(path.join(this.repoRoot, 'src')) &&
+      !fs.existsSync(path.join(this.repoRoot, 'tests'))
+    ) {
       return new FormatOutcome({ changedPaths: [] });
     }
-    // 快照必须传窄目录：`['nsh-app']` 会递归遍历 node_modules/ 与 .nsh/，
-    // 既慢又会把生成物算成「formatter 改了文件」。
-    const rustDirs = ['nsh-app/src', 'nsh-app/tests', 'nsh-app/examples'];
+    // 快照必须传窄目录：传 ['.'] 会递归遍历 node_modules/、.nsh/、target/
+    // 与 tool/、docs/，既慢又会把生成物算成「formatter 改了文件」。
+    const rustDirs = ['src', 'tests', 'examples'];
     const before = snapshotSources(this.repoRoot, rustDirs, '.rs');
     const result = await this.runner('cargo', ['fmt', '--all'], {
-      workingDirectory: `${this.repoRoot}/nsh-app`,
+      workingDirectory: this.repoRoot,
     });
     if (result.exitCode !== 0) {
       return new FormatOutcome({
         changedPaths: [],
         error: `cargo fmt failed (exit ${result.exitCode}): ${result.stderr}`,
-        commandsRun: ['cargo fmt --all (in nsh-app)'],
+        commandsRun: ['cargo fmt --all (at repo root)'],
       });
     }
     const after = snapshotSources(this.repoRoot, rustDirs, '.rs');
     return new FormatOutcome({
       changedPaths: _changed(before, after),
-      commandsRun: ['cargo fmt --all (in nsh-app)'],
+      commandsRun: ['cargo fmt --all (at repo root)'],
     });
   }
 

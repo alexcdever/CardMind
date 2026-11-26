@@ -2,20 +2,20 @@
 
 ## 1. 目标与范围
 
-- 本文档定义 CardMind 的技术栈基线与依赖治理规则，适用于 NSH/TSX（nsh-app）、Rust、构建与测试链路。
+- 本文档定义 CardMind 的技术栈基线与依赖治理规则，适用于 NSH/TSX（app 源码在仓库根）、Rust、构建与测试链路。
 - 本文档是跨功能、长期复用的工程标准；功能行为本身以 `docs/adr/` 与 `docs/product.md` 为准。
 
 ## 2. 技术栈基线
 
 ### 2.1 语言与运行时
 
-- NSH/TSX 前端：nsh `0.1.1`（`nsh-app/nsh.json`；UI 为 TSX + tiptap，`nsh-app/package.json`）。
+- NSH/TSX 前端：nsh `0.7.0`（`nsh.json`；UI 为 TSX，`package.json`）。
 - Node.js 工具链（仅 `tool/` 门禁/lint，`.mjs` ESM、零 npm 依赖）：Node ≥ 20.12（Windows 下 .cmd 解析需 CVE-2024-27980 修复）；产品侧无 `pubspec.yaml`，Dart SDK 依赖已随 gate-js 移植移除。
-- Rust：Edition `2024`，以 `nsh-app/Cargo.toml` 为准（内核在 `nsh-app/src/kernel/`，与外壳同一 crate）。
+- Rust：Edition `2024`，以 `Cargo.toml` 为准（内核在 `src/kernel/`，与外壳同一 crate）。
 
 ### 2.2 跨语言桥接
 
-- 前端与 Rust 的边界由 NSH 运行时承载（`nsh-app` 的 Rust crate 直接嵌入业务内核：`rust = '.'` 指 `nsh-app/Cargo.toml`，内核模块在 `nsh-app/src/kernel/`）。
+- 前端与 Rust 的边界由 NSH 运行时承载（app 的 Rust crate 直接嵌入业务内核：`rust = '.'` 指仓库根的 `Cargo.toml`，内核模块在 `src/kernel/`）。
 - 旧 Flutter Rust Bridge 桥（`flutter_rust_bridge` + `lib/src/rust/` 生成代码 + `flutter_rust_bridge.yaml`）已随 4.6 整删；`rust-backend/src/frb_generated.rs`、`rust-backend/src/api.rs` 与 `flutter_rust_bridge` 依赖已随 P1 死代码清理删除。
 
 ### 2.3 数据与同步内核
@@ -26,30 +26,28 @@
 
 ### 2.4 构建与验证链路
 
-- 前端测试：`cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`（node --test，经 tsx 加载 TS）
-- 前端打包：`cd nsh-app && npm run build`（需 `NSH_SOURCE` 指向 nsh 源码 checkout）
-- Rust 测试：`cd nsh-app && cargo test --all-features --jobs 1`
-- Rust 静态检查：`cd nsh-app && cargo clippy --all-targets --all-features --workspace -- -D warnings`
+- 前端测试：`npx tsx --test "*_test.ts"`（在仓库根跑；node --test，经 tsx 加载 TS）
+- 前端打包：`npm run build`（在仓库根跑；`node build-nsh.mjs`，不再需要 `NSH_SOURCE`）
+- Rust 测试：`cargo test --all-features --jobs 1`（在仓库根跑）
+- Rust 静态检查：`cargo clippy --all-targets --all-features --workspace -- -D warnings`（在仓库根跑）
 - 门禁：`node tool/git_gate.mjs plan --staged` / `full`（pre-commit 快速路由；pre-push/full 跑 docs lint → rust clippy → rust test → build-lib → tsx test）
 
 ### 2.5 平台支持
 
 - 产品目标平台：移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。
 - 仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，仓库不含任何平台工程目录；iOS 属目标平台，工程目录亦未建立（见 `AGENTS.md` 当前状态）。平台产物统一由 `nsh package . --target <platform>` 产出。
-- 构建链路入口为 `nsh-app/build-nsh.mjs`（`npm run build`），走 0.3.0 CLI 的 `nsh build . -o out`，不需要 `NSH_SOURCE`；旧 tool/build.dart（`app`/`lib`/`run` 子命令，Flutter 构建链）已随 4.6 删除。
-- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `nsh-app/target/release/`）；NSH 把 backend 作为 crate 编进 `nsh-app`，运行时不依赖动态库复制。
+- 构建链路入口为 `build-nsh.mjs`（`npm run build`），走 nsh CLI 的 `nsh build . -o out`，不需要 `NSH_SOURCE`；旧 tool/build.dart（`app`/`lib`/`run` 子命令，Flutter 构建链）已随 4.6 删除。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `target/release/`）；NSH 把 backend 作为 crate 编进同一个 crate，运行时不依赖动态库复制。
 
 ## 3. 核心三方依赖
 
-### 3.1 前端（nsh-app，npm）
+### 3.1 前端（npm）
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| @tiptap/core / starter-kit / 各 extension | ^3.32.0 | 编辑器内核 |
 | tsx（dev） | ^4.19.2 | TSX 测试加载器（node --test） |
 | typescript（dev） | ^5.6.3 | TSX 类型 |
-| esbuild（dev） | ^0.28.2 | web 编辑器 bundle |
-| jsdom（dev） | ^30.1.3 | 测试 DOM |
+| @types/node（dev） | ^26.6.5 | Node 类型声明 |
 
 ### 3.2 Rust
 
@@ -71,7 +69,7 @@
 
 说明：
 
-- 上表只列 `nsh-app/Cargo.toml` 的内核直接依赖（NSH 运行时的 `nsh-core`/`nsh-base` 不在此表）；“锁定”版本取自 `nsh-app/Cargo.lock`。
+- 上表只列 `Cargo.toml` 的内核直接依赖（NSH 运行时的 `nsh-core`/`nsh-base` 不在此表）；“锁定”版本取自 `Cargo.lock`。
 - `serde`、`thiserror`、`postcard` 等仅作为传递依赖进入 `Cargo.lock`，不是本仓库的直接依赖，因此不在此登记。
 
 ## 4. 版本治理与变更规则

@@ -52,7 +52,7 @@ const codeOnly = (src: string) =>
 
 describe('2.5 devices_page.tsx — 存在与配对流程', () => {
   it('devices_page.tsx 存在', () => {
-    assert.ok(existsSync(devicesPath), 'nsh-app/devices_page.tsx 不存在');
+    assert.ok(existsSync(devicesPath), 'devices_page.tsx 不存在');
   });
 
   it('生成配对码（beginPairingAcceptWithAdvertising，任务 J 组合 API）', () => {

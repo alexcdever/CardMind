@@ -1,6 +1,6 @@
 // 设备页类型（自 devices_page.tsx 纯结构拆出，声明逐字保留）。
 
-/** 已配对设备行（与 nsh-app/src/lib.rs 的 PairedDeviceDto 镜像一致）。 */
+/** 已配对设备行（与 src/lib.rs 的 PairedDeviceDto 镜像一致）。 */
 export interface PairedDeviceDto {
   peerId: string;
   name: string;

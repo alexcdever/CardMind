@@ -50,7 +50,7 @@ const codeOnly = (src: string) =>
 
 describe('2.2 note_list.tsx — 存在与布局分支', () => {
   it('note_list.tsx 存在', () => {
-    assert.ok(existsSync(pagePath), 'nsh-app/note_list.tsx 不存在');
+    assert.ok(existsSync(pagePath), 'note_list.tsx 不存在');
   });
 
   it('从 ./theme 导入令牌（colors/layout/spacing/radii 至少其一）', () => {

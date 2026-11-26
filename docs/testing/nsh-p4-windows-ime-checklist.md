@@ -30,7 +30,7 @@
   packaged Windows apps; build it on Windows` 并 exit 1），**不是可装的
   Windows 程序**。不要拿 macOS 产物到 Windows 上用；在 Windows 上重新
   `nsh package . --target windows`。
-- 剪贴板 capability 已在 `nsh-app/nsh.json` 声明 `"clipboard": true`。
+- 剪贴板 capability 已在 `nsh.json` 声明 `"clipboard": true`。
 
 ## A. 中文 IME（微软拼音）
 
@@ -66,14 +66,14 @@
 > `%TEMP%\cardmind-big-note.md`，并可选跑一遍 headless `nsh test` 做对照；
 > 不做应用启动/注入/自动计时（启动与预览计时按 B/D 清单手工执行，或用
 > §E 的 `nsh test --filter "5 万字" --target windows` 复测）。
-> 保存为 `nsh-p4-windows-probe.ps1`，**放在 `nsh-app/` 目录下**执行：
+> 保存为 `nsh-p4-windows-probe.ps1`，**放在仓库根目录**执行：
 > `powershell -ExecutionPolicy Bypass -File nsh-p4-windows-probe.ps1`
-> （脚本经 `$PSScriptRoot` 定位到 nsh-app/）。
+> （脚本经 `$PSScriptRoot` 定位到仓库根）。
 
 ```powershell
 # nsh-p4-windows-probe.ps1  — CardMind NSH 编辑器 Windows 真机探针
 $ErrorActionPreference = "Stop"
-$AppDir = "$PSScriptRoot"          # 假定脚本放在 nsh-app/ 下
+$AppDir = "$PSScriptRoot"          # 假定脚本放在仓库根下
 Set-Location $AppDir
 
 # 0) 依赖检查
@@ -115,7 +115,7 @@ nsh test --filter "editor"
 
 ## E. 真机复测建议（预览耗时）
 
-- 首选：`cd nsh-app && nsh test --filter "5 万字" --target windows`（让同一
+- 首选：`nsh test --filter "5 万字" --target windows`（在仓库根跑；让同一
   测量跑在 Windows 开发宿主上，对比 headless 的 p50/p95）。
 - 或手工秒表：B3 步骤计时「点预览 → 首屏渲染稳定」。
 
@@ -142,5 +142,5 @@ nsh test --filter "editor"
 复现（会开真窗口，属显式授权场景）：
 
 ```
-cd nsh-app && CARGO_TARGET_DIR=<主树 target> nsh test --target macos --filter editor --fps -v
+CARGO_TARGET_DIR=<主树 target> nsh test --target macos --filter editor --fps -v
 ```

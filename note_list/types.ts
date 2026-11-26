@@ -1,6 +1,6 @@
 // 笔记列表页数据层类型（自 note_list.tsx 纯结构拆出，未改任何形状/语义）。
 //
-// `NoteDto` 与 nsh-app/src/lib.rs 的 JsObject 镜像一致。page 数据通过
+// `NoteDto` 与 src/lib.rs 的 JsObject 镜像一致。page 数据通过
 // `NoteListSource` 解耦——测试/500 篇造数用一个内存源，真实 UI 走 BackendNotes。
 export interface NoteDto {
   id: string;

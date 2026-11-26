@@ -9,7 +9,7 @@ use nsh_core::prelude::*;
 // ━━━ 施工方案 1.1 + 1.2 + 1.3：DTO 镜像（防内核反向依赖）━━━
 //
 // 硬约束：不能给 `crate::kernel` 的行类型加 `#[derive(JsObject)]`——那会让
-// 内核依赖 `nsh-core`，把 UI 运行时钉进内核。故在 nsh-app 侧
+// 内核依赖 `nsh-core`，把 UI 运行时钉进内核。故在外壳侧
 // 定义镜像 struct（`#[derive(JsObject, Clone)]`）+ `impl From<&Row> for Dto`，
 // 把后端行类型转成 nsh 可序列化的 plain object。
 

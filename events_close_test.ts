@@ -3,7 +3,7 @@
 //
 // 1.5：Phase-1 演示用的 Bridge 组件（事件回推面）已删除——lib.rs 不再声明
 //     Bridge / BridgeEvent / BridgeProps，也不再注册；只断言「不存在」。
-// 1.6：`nsh-app/src/kernel/sync.rs` 有 `pub async fn close(&self)`，且方法体内
+// 1.6：`src/kernel/sync.rs` 有 `pub async fn close(&self)`，且方法体内
 //     `stop_receiver` 出现在 `endpoint.close` 之前；`BackendSync` 模块导出 `close`。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,7 +42,7 @@ describe('1.6 SyncService::close（退出钩子）', () => {
     assert.match(
       syncRs,
       /pub async fn close\(&self\)/,
-      'nsh-app/src/kernel/sync.rs 应新增 `pub async fn close(&self)`',
+      'src/kernel/sync.rs 应新增 `pub async fn close(&self)`',
     );
   });
 

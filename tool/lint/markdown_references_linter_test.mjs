@@ -49,6 +49,23 @@ test('已删除历史链路：命中前缀本身或位于其下 → 不判存在
     'nsh-app/src/main.rs',
     'nsh-app/out/bundle.nshc',
     'nsh-app/.nsh/out/cardmind/nsh/capabilities.json',
+    // 2026-11-26 扁平化：nsh-app/ 整层消失、spike/ 整个目录删除。
+    'nsh-app/App.tsx',
+    'nsh-app/src/kernel/store.rs',
+    'spike/nsh-editor-md-probe/App.tsx',
+    'spike/nsh-editor-md-probe/logs/window-visual2.png',
+    'spike/nsh-editor-md-probe/nsh.json',
+    'spike/nsh-editor-md-probe',
+    // 扁平化后归档文档里的根相对已删除路径（当时 nsh-app/src/** 的对象）。
+    'src/main.rs',
+    'src/api.rs',
+    'src/prelude.rs',
+    'src/index.ts',
+    'src/editor_mount.ts',
+    'trash_page/types',
+    'tests/base/rich_editor',
+    // 本机本地配置目录（rsproxy 镜像，不进提交）。
+    '.cargo/config.toml.bak-probe',
     '.git/shallow',
     '.git/info/exclude',
     '.workflow-archive-2026-09-30/README.md',
@@ -60,10 +77,13 @@ test('已删除历史链路：命中前缀本身或位于其下 → 不判存在
 
 test('构建产物：生成目录同样不判存在性', () => {
   const buildTokens = [
-    'nsh-app/target',
-    'nsh-app/target/debug/build/x',
-    'nsh-app/.nsh/types',
-    ];
+    'target',
+    'target/debug/build/x',
+    '.nsh/types',
+    '.nsh/out/cardmind/cardmind.exe',
+    'out/cardmind',
+    'build/app/outputs/flutter-apk/app-debug.apk',
+  ];
   for (const token of buildTokens) {
     assert.ok(isBuildOutputPath(token), `构建产物: ${token}`);
   }
@@ -76,14 +96,10 @@ test('名字相近的现存路径必须照常判定（否则检查等于被关�
     'docs/devtools/a.md',
     'libx/a.dart',
     'spike2/a.md',
-    // `spike/` 只豁免两个未跟踪的旧探针；已提交的 P2 探针照常判定。
-    'spike/nsh-editor-md-probe/App.tsx',
-    'spike/nsh-editor-md-probe/logs/window-visual2.png',
-    'spike/nsh-editor-md-probe/logs/__nope__.png',
-    'spike/nsh-editor-md-probe/__nope__.md',
-    'spike/nsh-editor-md-probe',
-    'nsh-app/webx/a.ts',
-    'nsh-app/editor_page_test.ts.bak',
+    // 已删除前缀是**前缀**匹配：名字相近但不在其下的路径照常判定。
+    'nsh-appx/App.tsx',
+    'spike2/nsh-editor-md-probe/App.tsx',
+    'cargox/config.toml',
   ];
   for (const token of stillJudged) {
     assert.ok(
@@ -97,7 +113,7 @@ test('本地日志（.log）不判存在性；非日志文件不受影响', () =
   const logTokens = [
     'spike/nsh-editor-md-probe/logs/test-final2.log',
     'spike/nsh-editor-md-probe/logs/run-windows.log',
-    'nsh-app/target/release/build.log',
+    'target/release/build.log',
   ];
   for (const token of logTokens) {
     assert.ok(isLocalLogPath(token), `本地日志: ${token}`);
@@ -108,8 +124,7 @@ test('本地日志（.log）不判存在性；非日志文件不受影响', () =
     'docs/product.md',
   ]) {
     assert.ok(!isLocalLogPath(token), `非日志文件: ${token}`);
-  }
-});
+  }});
 
 test('零依赖路径工具：POSIX 形态', () => {
   assert.equal(PathTools.normalize('/a/b/../c'), '/a/c', 'normalize /a/b/../c');
@@ -203,8 +218,8 @@ test('行内代码路径只判定仓库根相对路径：`..` 开头描述的是
     '仓库相对路径 docs/product.md',
   );
   assert.ok(
-    isRepoRelativeToken(root, 'nsh-app/src'),
-    '仓库相对路径 nsh-app/src',
+    isRepoRelativeToken(root, 'src/kernel'),
+    '仓库相对路径 src/kernel',
   );
   assert.ok(
     !isRepoRelativeToken(root, '../nsh/types'),

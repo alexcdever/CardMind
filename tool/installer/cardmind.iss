@@ -1,5 +1,5 @@
 ; CardMind Windows 安装脚本 (Inno Setup 6+)
-; 前置: 先 `cd nsh-app && nsh package --target windows` 产出 .nsh\out\cardmind\
+; 前置: 先在仓库根跑 `nsh package . --target windows` 产出 .nsh\out\cardmind\
 ; 产物: dist-20261023\CardMind-Setup.exe
 ; 用法: iscc tool\installer\cardmind.iss  （可 -D 覆盖 SourceDir/OutputDir/MyAppVersion）
 
@@ -10,7 +10,7 @@
 #define MyAppPublisher "CardMind"
 #define MyAppExeName "cardmind.exe"
 #ifndef SourceDir
-  #define SourceDir "..\..\nsh-app\.nsh\out\cardmind"
+  #define SourceDir "..\..\.nsh\out\cardmind"
 #endif
 #ifndef OutputDir
   #define OutputDir "..\..\dist-20261023"
