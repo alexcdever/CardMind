@@ -31,15 +31,15 @@
 ## 测试与验证要求
 
 - 新功能和 bugfix 必须覆盖成功路径与失败路径
-- TSX 前端测试放在 `nsh-app/`（根级 `*_test.ts`）与 `nsh-app/web/src/`
-- Rust 集成测试放在 `nsh-app/tests/`
-- 最终验证命令应覆盖受影响范围，常见命令包括：`npx tsx --test`（在 `nsh-app/`）、`cargo test`、`node tool/git_gate.mjs plan --staged`
+- TSX 前端测试放在仓库根（根级 `*_test.ts`）
+- Rust 集成测试放在 `tests/`
+- 最终验证命令应覆盖受影响范围，常见命令包括：`npx tsx --test`（在仓库根）、`cargo test`、`node tool/git_gate.mjs plan --staged`
 - 若未采用严格的 `Red -> Green -> Blue` 顺序，最终交付时应明确说明原因、补充的验证手段以及仍然存在的风险
 
 ## 验证范围映射
 
 - 文档改动：至少执行文档一致性检查与仓库级引用搜索（`node tool/lint/markdown_references_linter.mjs`）
-- TSX 改动：至少执行 `cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`
+- TSX 改动：至少执行 `npx tsx --test "*_test.ts"`（在仓库根跑）
 - Rust 改动：至少执行 `cargo test`，必要时加 `cargo fmt --check` 与 `cargo clippy`
 - 门禁/工具改动（tool/**.mjs）：至少执行 `node tool/git_gate.mjs plan --staged`（计划无 flutter 步骤、有 rust+tsx）
 

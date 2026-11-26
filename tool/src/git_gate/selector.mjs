@@ -5,9 +5,10 @@
 // 测试索引由调用方注入，保证可单测。
 //
 // 4.6 起 Flutter 链整删：dartTest/dartBusiness/frbBoundary/flutterTest 路由
-// 与 `test/` 文件级聚合全部移除；前端测试只剩 nsh-app 的 TSX 全量
-// （`npx tsx --test "*_test.ts"`，在 nsh-app/ 跑）。
+// 与 `test/` 文件级聚合全部移除；前端测试只剩仓库根 app 的 TSX 全量
+// （`npx tsx --test "*_test.ts"`，在仓库根跑）。
 // JS 移植起：formatDart 步删除，toolDart 类别改判 tool/**/*.mjs|.js（toolScript）。
+// 2026-11-26 起 nsh-app/ 层已去掉，app 源码直接在仓库根。
 
 import { Commands } from './command.mjs';
 
@@ -36,7 +37,7 @@ export class TestIndex {
     this.rustTestTargets = rustTestTargets;
 
     // 引用 `api::`（FRB 导出层）的 Rust 测试 target 名。
-    // 由 `scanTestIndex` 读 `nsh-app/tests/**/*.rs` 内容派生。
+    // 由 `scanTestIndex` 读 `tests/**/*.rs` 内容派生。
     this.rustApiConsumers = rustApiConsumers;
   }
 }
@@ -108,17 +109,38 @@ export function normalizePath(path) {
   return p.startsWith('./') ? p.substring(2) : p;
 }
 
-/** nsh-app 的 TS/TSX 测试文件（node --test 约定 `*_test.ts`/`_test.tsx`）。 */
+// 「app 路径」判据：app 源码在仓库根（2026-11-26 去掉 nsh-app/ 层后）。
+// 命中条件：路径不含 `/`（仓库根级文件），或位于下列 app 子目录之一。
+// 刻意不做「任意 .ts/.tsx 都算 app」——否则将来出现在 tool/、docs/ 下的
+// 脚本会被误判成前端源码而跑 TSX 全量。
+const _appDirs = [
+  'components/',
+  'note_list/',
+  'editor_page/',
+  'devices_page/',
+  'trash_page/',
+  'settings_page/',
+  'src/',
+  'tests/',
+  'examples/',
+];
+
+function _isAppPath(p) {
+  if (!p.includes('/')) return true;
+  return _appDirs.some((d) => p.startsWith(d));
+}
+
+/** app 的 TS/TSX 测试文件（node --test 约定 `*_test.ts`/`_test.tsx`）。 */
 function _isTsxTest(p) {
   return (
-    p.startsWith('nsh-app/') &&
+    _isAppPath(p) &&
     (p.endsWith('_test.ts') || p.endsWith('_test.tsx'))
   );
 }
 
-/** nsh-app 其余源码/清单（.ts/.tsx/.mts/.cts 与 package.json/nsh.json/tsconfig）。 */
+/** app 其余源码/清单（.ts/.tsx/.mts/.cts 与 package.json/nsh.json/tsconfig）。 */
 function _isTsxSource(p) {
-  if (!p.startsWith('nsh-app/')) return false;
+  if (!_isAppPath(p)) return false;
   return (
     p.endsWith('.ts') ||
     p.endsWith('.tsx') ||
@@ -132,11 +154,11 @@ function _isTsxSource(p) {
 }
 
 function _isRustTest(p) {
-  return p.startsWith('nsh-app/tests/') && p.endsWith('.rs');
+  return p.startsWith('tests/') && p.endsWith('.rs');
 }
 
 function _isRustSource(p) {
-  return p.startsWith('nsh-app/src/') && p.endsWith('.rs');
+  return p.startsWith('src/') && p.endsWith('.rs');
 }
 
 // 门禁/工具自身的 JS 源码（tool/**/*.mjs|.js）：改它只跑 docsLint，
@@ -145,7 +167,7 @@ function _isToolScript(p) {
   return p.startsWith('tool/') && (p.endsWith('.mjs') || p.endsWith('.js'));
 }
 
-// Cargo manifest（nsh-app/Cargo.toml 与 nsh-app/Cargo.lock 是仓库唯一一份）。
+// Cargo manifest（Cargo.toml 与 Cargo.lock 在仓库根，是仓库唯一一份）。
 // 按文件名匹配（Cargo 大小写不敏感；normalizePath 已保证反斜杠先归一化）。
 function _isManifest(p) {
   const lower = p.toLowerCase();
@@ -218,7 +240,7 @@ function _contribute(b, file, index) {
       break;
     case FileCategory.tsxTest:
     case FileCategory.tsxSource:
-      // nsh-app 任何 TS/TSX 改动都跑 TSX 全量（单进程、秒级，无需文件级路由）。
+      // app 任何 TS/TSX 改动都跑 TSX 全量（单进程、秒级，无需文件级路由）。
       b.add(Commands.tsxTest());
       break;
     case FileCategory.rustTest: {
@@ -252,15 +274,15 @@ function _contribute(b, file, index) {
       break;
     case FileCategory.manifest: {
       // Cargo manifest fail-closed 为 Rust 全量（clippy + cargo test 全量）；
-      // endsWith 匹配覆盖 nsh-app/Cargo.toml 与 nsh-app/Cargo.lock。
+      // endsWith 匹配覆盖根级 Cargo.toml 与 Cargo.lock。
       b.add(Commands.clippy());
       b.add(Commands.rustFullTest());
       break;
     }
     case FileCategory.platform:
-      // 平台工程目录（android/linux/macos/windows/ios/web 根目录；注意
-      // nsh-app/web/** 已被 tsxSource 先捕获，不会落到这里）暂不承担检查：
-      // 其内容由 NSH 打包（npm run build）与 Rust 构建覆盖，门禁保持窄路由。
+      // 平台工程目录（android/linux/macos/windows/ios/web 根目录）暂不承担
+      // 检查：其内容由 NSH 打包（npm run build）与 Rust 构建覆盖，门禁保持
+      // 窄路由。
       break;
     case FileCategory.sharedConfig:
       b.add(Commands.clippy());
@@ -352,7 +374,7 @@ function _relatedRustTargets(file, index) {
 }
 
 /**
- * 按 cargo 规则推导 `nsh-app/tests/` 路径是否为 test target；不是返回 null。
+ * 按 cargo 规则推导 `tests/` 路径是否为 test target；不是返回 null。
  *
  * cargo 规则：`tests/foo.rs` → target `foo`；`tests/foo/main.rs` →
  * target `foo`（目录名，文件名 `main` 不是 target）；`tests/<dir>/`
@@ -360,7 +382,7 @@ function _relatedRustTargets(file, index) {
  * 输入为仓库相对路径，本函数自行校验前缀与 `.rs` 后缀。
  */
 export function rustTestTargetName(path) {
-  const prefix = 'nsh-app/tests/';
+  const prefix = 'tests/';
   if (!path.startsWith(prefix) || !path.endsWith('.rs')) return null;
   const rest = path.substring(prefix.length);
   const slash = rest.indexOf('/');

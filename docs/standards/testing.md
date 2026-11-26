@@ -8,9 +8,9 @@
 
 ## 目录规则
 
-- TSX 前端测试位于 `nsh-app/`（根级 `*_test.ts`）与 `nsh-app/web/src/`（`*_test.ts`），node --test 经 tsx 加载运行
-- Rust 集成测试位于 `nsh-app/tests/`
-- Cargo 仅自动发现 `nsh-app/tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
+- TSX 前端测试位于仓库根的根级 `*_test.ts`，node --test 经 tsx 加载运行
+- Rust 集成测试位于 `tests/`
+- Cargo 仅自动发现 `tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
 
 - 旧 Flutter 测试目录（`test/`、`integration_test/`）已随迁移 4.6 整删
 
@@ -24,8 +24,8 @@
 
 本地质量门禁按栈分层执行：
 
-1. **TSX 层**：`nsh-app` 全部 `*_test.ts`（node --test，`npx tsx --test "*_test.ts" "web/src/*_test.ts"`，在 `nsh-app/` 跑）。pre-commit 按 `nsh-app/**` 触发全量；不做文件级窄路由（单进程、秒级）。
-2. **Rust 层**：`nsh-app/tests/` 集成测试，pre-commit 按改动文件映射到具体 `cargo test --test <target>`（store/sync/pairing/trash 等关键词表 + `api::` 引用派生），无映射时 fail-closed 全量；pre-push/full 固定跑 `cargo test --all-features --jobs 1`。
+1. **TSX 层**：仓库根全部 `*_test.ts`（node --test，`npx tsx --test "*_test.ts"`，在仓库根跑）。pre-commit 按 app 文件改动触发全量；不做文件级窄路由（单进程、秒级）。
+2. **Rust 层**：`tests/` 集成测试，pre-commit 按改动文件映射到具体 `cargo test --test <target>`（store/sync/pairing/trash 等关键词表 + `api::` 引用派生），无映射时 fail-closed 全量；pre-push/full 固定跑 `cargo test --all-features --jobs 1`。
 3. **文档契约层**：markdown 引用 lint（`tool/lint/markdown_references_linter.mjs`），markdown 改动与全量 suite 均触发。
 4. **发布/验收层**：真机 GUI 与双实例 E2E 同步链路（NSH 壳 + Rust 后端），属发布/验收门禁，不塞入普通 push；当前无自动化 runner，按任务验收执行。
 

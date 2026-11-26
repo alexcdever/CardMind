@@ -1,21 +1,21 @@
 # CardMind
 
-面向多设备个人用户的笔记同步应用。NSH 前端（nsh-app，TSX）+ Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
+面向多设备个人用户的笔记同步应用。NSH 前端（TSX，app 源码直接在仓库根）+ Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
 
 ## 技术栈
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | NSH + TSX（nsh-app） | nsh 0.7.0（`nsh-app/Cargo.toml` nsh-core/nsh-base；`RichEditor` 做 WYSIWYG 默认编辑 + `Editor` 做 Markdown 源码模式，无 WebView/Tiptap） |
-| 核心逻辑 | Rust | Edition 2024（`nsh-app/Cargo.toml`；与 NSH 外壳同一个 `nsh-app-cardmind` crate，内核在 `nsh-app/src/kernel/`）；CI 用 stable，仓库未固定 toolchain |
-| CRDT 存储 | Loro | 1.17.1（`nsh-app/Cargo.lock`） |
-| 网络层 | iroh | 1.4.1（`nsh-app/Cargo.lock`；直连模式，默认禁用 relay） |
-| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`nsh-app/Cargo.lock`，bundled） |
+| 前端 | NSH + TSX（app 源码在仓库根） | nsh 0.7.0（`Cargo.toml` nsh-core/nsh-base；`RichEditor` 做 WYSIWYG 默认编辑 + `Editor` 做 Markdown 源码模式，无 WebView/Tiptap） |
+| 核心逻辑 | Rust | Edition 2024（`Cargo.toml`；与 NSH 外壳同一个 `nsh-app-cardmind` crate，内核在 `src/kernel/`）；CI 用 stable，仓库未固定 toolchain |
+| CRDT 存储 | Loro | 1.17.1（`Cargo.lock`） |
+| 网络层 | iroh | 1.4.1（`Cargo.lock`；直连模式，默认禁用 relay） |
+| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`Cargo.lock`，bundled） |
 
 ## 架构
 
 ```
-NSH (TSX UI, nsh-app) ←→ Rust 内核（nsh-app/src/kernel，与 TSX 外壳同一个 nsh-app-cardmind crate）
+NSH (TSX UI, 仓库根) ←→ Rust 内核（src/kernel，与 TSX 外壳同一个 nsh-app-cardmind crate）
                           ├─ LoroDoc (真实信源)
                           ├─ SQLite (读模型)
                           └─ iroh (网络同步)
@@ -27,7 +27,7 @@ NSH (TSX UI, nsh-app) ←→ Rust 内核（nsh-app/src/kernel，与 TSX 外壳�
 ## 项目结构
 
 ```
-nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter lib/）
+仓库根          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter lib/）
   App.tsx         应用入口
   components.tsx  UI 组件入口（re-export 公共 API + panel + ViewStyle）
   components/     UI 组件子模块（components.tsx 为入口）：
@@ -82,17 +82,17 @@ tool/             工具脚本（lint/、release/ python 发布脚本；门禁 g
 ## 关键命令
 
 ```bash
-# nsh-app（TSX 前端；在 nsh-app/ 下跑）
-cd nsh-app && npm install                # 装依赖（首次/CI）
-cd nsh-app && npx tsx --test "*_test.ts"   # TSX 全量测试（node --test）
-cd nsh-app && nsh check .                 # 类型检查 + app crate 构建
-cd nsh-app && nsh test --filter editor    # 编辑器行为测试（假 repository）
-cd nsh-app && npm run build               # 打包（node build-nsh.mjs；不再需要 NSH_SOURCE）
+# app（TSX 前端；在仓库根跑）
+npm install                              # 装依赖（首次/CI）
+npx tsx --test "*_test.ts"               # TSX 全量测试（node --test）
+nsh check .                              # 类型检查 + app crate 构建
+nsh test --filter editor                 # 编辑器行为测试（假 repository）
+npm run build                            # 打包（node build-nsh.mjs；不再需要 NSH_SOURCE）
 
 # Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
-cd nsh-app && cargo test                # 全量测试
-cd nsh-app && cargo test --test sync_service_test    # 同步专项
-cd nsh-app && cargo build --release     # 发布构建
+cargo test                               # 全量测试
+cargo test --test sync_service_test      # 同步专项
+cargo build --release                    # 发布构建
 
 # 门禁（pre-commit/pre-push 用；Node.js 工具链，git_gate.mjs）
 node tool/git_gate.mjs plan --staged   # 查看 staged 触发的计划
@@ -100,13 +100,13 @@ node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 ```
 
 > Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。
-> `npm run build`（nsh-app）是 `node build-nsh.mjs`，只要求 PATH 上的 `nsh` CLI 版本与 `nsh-app/Cargo.toml` 的 nsh 依赖一致；不再需要 `NSH_SOURCE`。
+> `npm run build` 是 `node build-nsh.mjs`，只要求 PATH 上的 `nsh` CLI 版本与 `Cargo.toml` 的 nsh 依赖一致；不再需要 `NSH_SOURCE`。
 > **默认 headless**：`nsh check` / `npx tsx --test` / `nsh test` / `cargo test` / `node build-nsh.mjs` / `nsh package` 都不弹窗；只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口，不要为跑测试自动执行。目视 UI 由人自己打开，或经明确要求后 `open -g`（后台）+ 截图 + 立即退出。
 
 ## 运行态动态库
 
-- NSH 版后端就在 `nsh-app` 自身 crate 里（`nsh-app/Cargo.toml` 的 `rust = '.'` 指向本 crate；内核模块在 `nsh-app/src/kernel/`），**运行时不需要任何动态库复制**。
-- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `nsh-app/target/release/`（lib rlib；不产动态库），不复制到任何运行态路径。
+- NSH 版后端就在 `nsh-app-cardmind` 自身 crate 里（`nsh.json` 的 `rust = '.'` 指向仓库根的 crate；内核模块在 `src/kernel/`），**运行时不需要任何动态库复制**。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查），产物落在 `target/release/`（lib rlib；不产动态库），不复制到任何运行态路径。
 - Flutter 时代的 host runtime 同步（复制到 `build/<platform>/…`）已随平台工程删除：门禁侧 `tool/src/git_gate/` 下的 `host_build.*` 已删，`build/` 目录也不存在。
 
 ## 日志与数据目录（排查必读）
@@ -115,7 +115,7 @@ node tool/git_gate.mjs full --dry-run  # 完整 suite 预演（rust + tsx）
 （`[cardmind:log] <RFC3339> platform=… event=… stage=…` 单行）并转发 `tracing`，
 **没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/archive/handover-nsh-editor-2026-11-03.md` §6 第 10 条）；NSH 侧也没有打开目录的 API。
 
-**数据目录**（`nsh-app/src/backend/store.rs::data_dir()`；旧版目录优先，用于数据共存）：
+**数据目录**（`src/backend/store.rs::data_dir()`；旧版目录优先，用于数据共存）：
 
 | 平台 | 旧版（优先读） | NSH 自有（回退） |
 |---|---|---|
@@ -144,11 +144,11 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 | 项目 | 状态 |
 |------|------|
 | v2 结构重组 | ✅ 源码在仓库根目录，v1 冻结代码已删除 |
-| NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
+| NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 NSH TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite（NSH 原生模块边界，无 FRB） |
-| NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
+| NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（TSX，仓库根） |
 | 编辑器迁移 | ✅ WebView+Tiptap 已替换：`RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）。P4-3b 起 WYSIWYG 内 `[[` 候选（suggestion）与 `cardmind://note/<id>` 链接「打开笔记」（bubbleMenu → `onNavigateNote`/`openEditor`）均已接通；P4-4 起自链（指向当前笔记）不再显示气泡菜单；进度/交接见 `docs/archive/progress-nsh-editor-2026-11-03.md`（§25–§28）、`docs/archive/handover-nsh-editor-2026-11-03.md` |
-| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
+| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
 
 ## 文档地图
 
@@ -180,7 +180,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 
 凡是涉及 **UI 或交互** 的功能——新增/修改页面、组件、布局、导航、表单、空态/加载/错误态、确认流程、触摸目标、可达性、主题与令牌——以本仓库两份标准为唯一基准，不凭经验直接写：
 
-- **基准文档**：`docs/standards/ui-style-guide.md`（布局、层级、交互约定）与 `docs/standards/design-tokens.md`（颜色/间距/圆角/字阶）。所有视觉值取 `nsh-app/theme.ts` 的 `colors/spacing/radii`（迁移自 CardMindTokens/Spacing/Radii），禁止硬编码。
-- **改 UI/交互前逐条核 Pre-Delivery Checklist**：触摸目标 ≥48dp；不用 emoji 当图标（用 `components/glyph` 图标集）；颜色不作唯一状态指示（配文字/图标）；阴影与圆角遵循令牌层级；disabled 态有明确视觉反馈。
+- **基准文档**：`docs/standards/ui-style-guide.md`（布局、层级、交互约定）与 `docs/standards/design-tokens.md`（颜色/间距/圆角/字阶）。所有视觉值取 `theme.ts` 的 `colors/spacing/radii`（迁移自 CardMindTokens/Spacing/Radii），禁止硬编码。
+- **改 UI/交互前逐条核 Pre-Delivery Checklist**：触摸目标 ≥48dp；不用 emoji 当图标（用 `components/glyph.tsx` 图标集）；颜色不作唯一状态指示（配文字/图标）；阴影与圆角遵循令牌层级；disabled 态有明确视觉反馈。
 - **交付/审查 UI 前**：按上述两份标准 + 本清单做一次走查；UI 审查任务派发子代理时，把清单与两份标准文档作为审查基准一并传入 prompt。
 

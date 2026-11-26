@@ -88,9 +88,12 @@ export const buildOutputPrefixes = [
   'build/',
   '.dart_tool/',
   'sync-verify/target/',
-  'nsh-app/target/',
+  // 2026-11-26 去掉 nsh-app/ 层后，构建产物落在仓库根。
+  'target/',
   // `nsh check` / `nsh test` / `nsh package` 生成的目录（types、runt、out 等）。
-  'nsh-app/.nsh/',
+  '.nsh/',
+  // `nsh build . -o out` / 打包命令显式指定的产物目录。
+  'out/',
   'android/build/',
   'android/app/build/',
   'android/app/src/main/jniLibs/',
@@ -121,29 +124,43 @@ export const deletedHistoryPrefixes = [
   'macos/',
   'linux/',
   'windows/',
-  // NSH 迁移期的旧探针（未跟踪、仅存在于旧机器）与旧 WebView 前端（P2 删除）。
-  // 注意只豁免这两个**未跟踪**的旧探针目录：`spike/nsh-editor-md-probe/`
-  // 是已提交的 P2 探针（源码/截图），指向它的引用必须照常校验。
-  'spike/nsh-probe/',
-  'spike/nsh-rich-editor-probe/',
-  'nsh-app/web/',
-  'nsh-app/editor_page_test.ts',
-  'nsh-app/editor_test_entry.tsx',
-  'nsh-app/editor_test_repo.ts',
+  // 2026-11-26 扁平化：`nsh-app/` 整层目录消失（源码上提到仓库根），
+  // 归档文档对它的历史引用一律豁免——原先单独列出的 nsh-app/web/、
+  // nsh-app/editor_page_test.ts、nsh-app/editor_test_entry.tsx、
+  // nsh-app/editor_test_repo.ts、nsh-app/src/main.rs、nsh-app/out/、
+  // nsh-app/.nsh/out/ 均被本前缀覆盖，不再单独列出。
+  'nsh-app/',
+  // `spike/` 整个探针目录已删除（扁平化后 `nsh test` 会递归发现其中
+  // App.test.tsx 并执行，--filter 挡不住其编译错误）——覆盖原先单独列出的
+  // spike/nsh-probe/、spike/nsh-rich-editor-probe/ 两个未跟踪旧探针，以及
+  // 曾要求照常判定的 spike/nsh-editor-md-probe/。
+  'spike/',
   // Flutter 时代的 Dart 边界扫描器（4.6 删除）与其后的 Rust 版
   // rust-backend/tool/boundary_scanner，历史/研究文档仍引用。
   'tool/boundary_scanner',
-  // 2026-11 合并：rust-backend/ 整目录并入 nsh-app（src 五个模块 →
-  // nsh-app/src/kernel/，tests/examples → nsh-app/{tests,examples}，
-  // Cargo.toml 合流后删除；原 FRB 生成物 rust-backend/src/frb_generated.rs
-  // 与导出层 api.rs 已先删）。前缀豁免覆盖所有历史/研究/归档文档对
-  // rust-backend/** 的引用。
+  // 2026-11 合并：rust-backend/ 整目录并入 app（src 五个模块 →
+  // src/kernel/，tests/examples → {tests,examples}，Cargo.toml 合流后删除；
+  // 原 FRB 生成物 rust-backend/src/frb_generated.rs 与导出层 api.rs 已先删）。
+  // 前缀豁免覆盖所有历史/研究/归档文档对 rust-backend/** 的引用。
   'rust-backend/',
-  // Rust-native 演示入口（P1 删除；TSX app 由 App.tsx 入口运行）。
-  'nsh-app/src/main.rs',
-  // 旧打包产物（整个 `.nsh/` 另见 buildOutputPrefixes）。
-  'nsh-app/out/',
-  'nsh-app/.nsh/out/',
+  // 扁平化后归档文档中「根相对」的已删除路径（原 nsh-app/src/** 里的对象，
+  // 文档按当时根目录语义写成 src/…，当时因 `src/` 在仓库根不存在而跳过；
+  // 扁平化后 `src/` 真实存在，这些引用必须显式豁免）：
+  'src/main.rs', // Rust-native 演示入口（P1 删除；TSX app 由 App.tsx 入口运行）
+  'src/api.rs', // FRB 导出层（P1 删除）
+  'src/prelude.rs', // 研究文档对 nsh crate 内部文件的引用
+  // nsh-app/web/（旧 WebView 前端，P2 删除）的裸 src 路径形态。
+  'src/index.ts',
+  'src/editor_mount.ts',
+  'src/protocol.ts',
+  'src/md_fidelity_test.ts',
+  'src/editor_perf_test.ts',
+  // 模块目录引用（不带扩展名）的已删除/非仓库对象。
+  'trash_page/types',
+  'tests/base/',
+  'tests/compat/',
+  // 本机本地配置目录（rsproxy 镜像等，不进提交，类似 `.git/`）。
+  '.cargo/',
   // 本地 git 元数据与历史归档（worktree 的 `.git` 是文件，内容随机器变化）。
   '.git/',
   '.workflow-archive-2026-09-30/',

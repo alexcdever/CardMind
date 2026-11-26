@@ -86,7 +86,7 @@ export async function scanTestIndex(repoRoot) {
   // 引用 `api::` 的 Rust 测试 target（派生，不手抄）。
   const apiConsumers = new Set();
   const rust = new Set();
-  const rustTestsDir = path.join(repoRoot, 'nsh-app', 'tests');
+  const rustTestsDir = path.join(repoRoot, 'tests');
   if (fs.existsSync(rustTestsDir)) {
     // 递归扫描按 cargo target 规则索引（与 selector 的 rustTestTargetName
     // 同语义）：tests/*.rs 与 tests/<dir>/main.rs 是 target；子目录其余

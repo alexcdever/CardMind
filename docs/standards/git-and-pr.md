@@ -10,7 +10,7 @@ CardMind 的本地质量门禁由 `node tool/git_gate.mjs` 统一实现，Git Ho
 
 1. **format-first**：先格式化全部源码（Node.js `tool/` + Rust `cargo fmt --all`），formatter 必须真的写入文件；
 2. 若 formatter 改变了任何文件：立即阻止提交，输出改变路径，提示检查并重新暂存/提交，本轮不执行任何测试；**不自动 `git add`**，也不修改 index；
-3. 按 staged 文件（`git diff --cached`）分类执行快速检查：文档走 markdown references lint；`nsh-app/**` 走 TSX 全量（`npx tsx --test`，在 `nsh-app/` 跑）；Rust 文件走 `cargo clippy -D warnings` + 相关 test target；Cargo manifest/共享配置/无法分类文件 fail closed，升级为对应技术栈全量 host 测试（Rust 全量 + TSX 全量）。
+3. 按 staged 文件（`git diff --cached`）分类执行快速检查：文档走 markdown references lint；仓库根的 `*.ts`/`*.tsx` 与页面子目录（`components/`、`note_list/`、`editor_page/`、`devices_page/`、`trash_page/`、`settings_page/`、`src/`、`tests/`、`examples/`）走 TSX 全量（`npx tsx --test`，在仓库根跑）；Rust 文件走 `cargo clippy -D warnings` + 相关 test target；Cargo manifest/共享配置/无法分类文件 fail closed，升级为对应技术栈全量 host 测试（Rust 全量 + TSX 全量）。
 
 ### pre-push（完整 host suite）
 
@@ -19,7 +19,7 @@ CardMind 的本地质量门禁由 `node tool/git_gate.mjs` 统一实现，Git Ho
 1. format-first（同上）；
 2. 验证将测试的 tracked 源码与 HEAD 一致、且无未跟踪源码；不一致时阻止 push（避免测试工作树却缓存 HEAD）；
 3. 从 stdin 读取 Git 传入的 ref 行；
-4. 完整 host suite：markdown references lint → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --all-features --jobs 1` → `cargo build --release`（release 构建检查，不复制运行态动态库；NSH 把 backend 作为 crate 编进 `nsh-app`）→ 再次 format-first（改变则阻止）→ `npx tsx --test "*_test.ts"`（在 `nsh-app/` 跑）；
+4. 完整 host suite：markdown references lint → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --all-features --jobs 1` → `cargo build --release`（release 构建检查，不复制运行态动态库；NSH 把 backend 作为 crate 编进同一个 crate）→ 再次 format-first（改变则阻止）→ `npx tsx --test "*_test.ts"`（在仓库根跑）；
 5. 成功后按 exact HEAD SHA 写入 `.git` 内缓存；满足 HEAD/fingerprint/push SHA 集一致且工作树干净时跳过完整 suite（format-first 与一致性检查始终执行）。
 
 真机 GUI、双实例 relay E2E、coverage/tarpaulin 不塞入普通 pre-push，由任务验收或发布门禁执行。

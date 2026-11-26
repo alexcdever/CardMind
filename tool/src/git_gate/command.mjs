@@ -51,7 +51,6 @@ export const Commands = {
       arguments: ['fmt', '--all'],
       kind: CommandKind.formatRust,
       label: 'format:rust',
-      workingDirectory: 'nsh-app',
     }),
 
   docsLint: () =>
@@ -62,7 +61,7 @@ export const Commands = {
       label: 'docs:lint',
     }),
 
-  // nsh-app 是单 crate workspace（空 [workspace] 表、无 tool/ 成员），--workspace
+  // 仓库根是单 crate workspace（空 [workspace] 表、无 tool/ 成员），--workspace
   // 等价于只跑根 crate nsh-app-cardmind；保留参数与 CI rust_quality.yml 逐字同源。
   clippy: () =>
     new GateCommand({
@@ -78,7 +77,6 @@ export const Commands = {
       ],
       kind: CommandKind.clippy,
       label: 'rust:clippy',
-      workingDirectory: 'nsh-app',
     }),
 
   rustTestTarget: (target) =>
@@ -87,7 +85,6 @@ export const Commands = {
       arguments: ['test', '--test', target],
       kind: CommandKind.rustTest,
       label: `rust:test:${target}`,
-      workingDirectory: 'nsh-app',
     }),
 
   /** Rust 全量 host 测试。 */
@@ -97,22 +94,20 @@ export const Commands = {
       arguments: ['test', '--all-features', '--jobs', '1'],
       kind: CommandKind.rustTest,
       label: 'rust:test:full',
-      workingDirectory: 'nsh-app',
     }),
 
   // release 构建检查：`cargo build --release`。
-  // NSH 版把 backend 作为 crate 编进 nsh-app，不存在运行态动态库复制步骤。
+  // NSH 版把 backend 作为 crate 编进 app（仓库根），不存在运行态动态库复制步骤。
   hostBuildLib: () =>
     new GateCommand({
       executable: 'cargo',
       arguments: ['build', '--release'],
       kind: CommandKind.buildLib,
       label: 'rust:build-lib',
-      workingDirectory: 'nsh-app',
     }),
 
-  // nsh-app 的 TSX 全量测试：node --test 语义，匹配根级 *_test.ts；
-  // 在 nsh-app/ 目录跑（package.json type:module + tsx 依赖）。
+  // app 的 TSX 全量测试：node --test 语义，匹配根级 *_test.ts；
+  // 在仓库根跑（package.json type:module + tsx 依赖）。
   // executable 固定 'npx'——Windows 上由 runner.resolveExecutable 解析为 npx.cmd。
   tsxTest: () =>
     new GateCommand({
@@ -120,7 +115,6 @@ export const Commands = {
       arguments: ['tsx', '--test', '*_test.ts'],
       kind: CommandKind.tsxTest,
       label: 'tsx:test',
-      workingDirectory: 'nsh-app',
     }),
 
   // tool/release 下发布脚本的 Python 单元测试（unittest discover）。

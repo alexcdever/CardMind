@@ -13,8 +13,8 @@
 - [`nsh-editor/01-current-editor.md`](nsh-editor/01-current-editor.md)：当前编辑器实现与功能基线（WebView + Tiptap、桥协议、保存/加载时序、后端契约、测试基线、不能接受回归清单）。
 - [`nsh-editor/02-nsh-rich-editor-api.md`](nsh-editor/02-nsh-rich-editor-api.md)：NSH RichEditor / TextView / Markdown 能力面、发布状态、Loro 协作方案对比（RichEditor 为 main-only 历史/备选）。
 - [`nsh-editor/03-version-and-toolchain.md`](nsh-editor/03-version-and-toolchain.md)：NSH 版本事实、main 源码构建实录、RichEditor 探针结果（历史/备选）。
-- [`nsh-editor/04-app-upgrade.md`](nsh-editor/04-app-upgrade.md)：nsh-app 从 NSH 0.2.0 升级到 0.3.0/main 的逐文件 API 迁移面（0.3.0 部分为当前施工依据）。
+- [`nsh-editor/04-app-upgrade.md`](nsh-editor/04-app-upgrade.md)：app 从 NSH 0.2.0 升级到 0.3.0/main 的逐文件 API 迁移面（0.3.0 部分为当前施工依据）。
 - [`nsh-editor/05-editor-doc-api.md`](nsh-editor/05-editor-doc-api.md)：0.3.0 `Editor`/`TextView` API 全量、`[[` 补全实测与坑、探针结果。
 - [`archive/06-editor-md-migration.md`](../archive/06-editor-md-migration.md)：基于 `Editor` + `TextView` 的编辑器替换施工方案（逐文件、测试、阶段、验收；已归档）。
 
-版本号和发布时间会变化；涉及当前依赖选择时，以 `nsh-app/Cargo.toml`、`nsh-app/nsh.json` 和官方一手来源为准。
+版本号和发布时间会变化；涉及当前依赖选择时，以 `Cargo.toml`、`nsh.json` 和官方一手来源为准。

@@ -7,7 +7,7 @@ APP_VERSION / APP_BUILD / RELEASE_CHANNEL / RELEASE_TAG 四个键。
 通道语义（与 nsh_release.yml 一致）：
 - ref `vX.Y.Z` → stable：version 直接取 tag 里的 X.Y.Z；
 - 其余 ref（main、workflow_dispatch 等）→ beta：base version 从
-  nsh-app/nsh.json 的 `version` 读，再拼 `-beta.<run>` 后缀。
+  仓库根 nsh.json 的 `version` 读，再拼 `-beta.<run>` 后缀。
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pathlib import Path
 
 STABLE_TAG = re.compile(r"^v(?P<version>\d+\.\d+\.\d+)$")
 
-DEFAULT_NSH_JSON = Path(__file__).resolve().parents[2] / "nsh-app" / "nsh.json"
+DEFAULT_NSH_JSON = Path(__file__).resolve().parents[2] / "nsh.json"
 
 
 def app_version(nsh_json: Path) -> str:
@@ -72,7 +72,7 @@ def main() -> None:
         "--nsh-json",
         type=Path,
         default=DEFAULT_NSH_JSON,
-        help="nsh-app/nsh.json 路径（beta 的 base version 来源）",
+        help="仓库根 nsh.json 路径（beta 的 base version 来源）",
     )
     args = parser.parse_args()
 

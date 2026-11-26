@@ -4,7 +4,7 @@
 （Flutter 构建/质量链——build.dart、quality.dart、feature_test.dart、debug_pool、
 test_boundary_scanner——已随迁移 4.6 整删；Rust 边界扫描 crate
 `rust-backend/tool/boundary_scanner` 随死代码清理移除后，`rust-backend/` 整体也已于
-2026-11 并入 `nsh-app/`，本目录只剩门禁与 lint。）
+2026-11 并入 `nsh-app/`（`nsh-app/` 层随后再摊平到仓库根），本目录只剩门禁与 lint。）
 
 ## git_gate.mjs - 本地质量门禁 CLI（Node.js，不再需要 Dart SDK）
 
@@ -26,11 +26,11 @@ node tool/git_gate.mjs plan --files <path...>  # 按给定文件打印计划
 - `CARDMIND_FORCE_FULL_CHECK=1`：忽略 pre-push HEAD 缓存
 - `CARDMIND_GATE_TEST_MODE=1`：测试模式（fake runner，供真实 hook 集成测试）
 
-**设计要点**: format-first 先于一切检查（`cargo fmt --all`；原 `dart format tool` 步已随 JS 移植删除）；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 只做 `cargo build --release`（release 构建检查）——NSH 把 backend 作为 crate 编进 `nsh-app`，没有运行态动态库复制。
+**设计要点**: format-first 先于一切检查（`cargo fmt --all`；原 `dart format tool` 步已随 JS 移植删除）；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 只做 `cargo build --release`（release 构建检查）——NSH 把 backend 作为 crate 编进同一个 crate，没有运行态动态库复制。
 
-**suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
+**suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在仓库根跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
 
-**staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`nsh-app/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
+**staged 路由（pre-commit/plan）**：仓库根 `*.ts`/`*.tsx` 与 app 子目录（`components/`、`note_list/`、`editor_page/`、`devices_page/`、`trash_page/`、`settings_page/`、`src/`、`tests/`、`examples/`）→ tsx 全量；`src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；Cargo manifest → clippy + rust 全量；`tool/**/*.mjs|.js` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
 
 ## lint/markdown_references_linter.mjs - 文档路径检查
 
@@ -43,7 +43,7 @@ POSIX 与 Windows 形态由自测覆盖。
 **检查两类引用**:
 
 - Markdown 链接（方括号文字 + 圆括号里的 .md 路径），相对所在文件解析
-- 行内代码路径：形如 `` `docs/product.md` ``、`` `nsh-app/src/kernel/` ``，相对仓库根解析（首段必须是仓库根下真实存在的条目）
+- 行内代码路径：形如 `` `docs/product.md` ``、`` `src/kernel/` ``，相对仓库根解析（首段必须是仓库根下真实存在的条目）
 
 **检查范围**: 扫描根下全部 `.md`，排除外部导入的工具/技能包目录以及
 `.worktrees/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
@@ -51,17 +51,15 @@ POSIX 与 Windows 形态由自测覆盖。
 在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
 
 **构建产物**: 只有确实位于已知构建输出目录**之下**的路径才跳过存在性判定，当前前缀为 `build/`、
-`.dart_tool/`、`sync-verify/target/`、`nsh-app/target/`、`nsh-app/.nsh/`、
+`.dart_tool/`、`sync-verify/target/`、`target/`、`.nsh/`、`out/`、
 `android/build/`、`android/app/build/`、`android/app/src/main/jniLibs/`、`android/.gradle/`、
 `macos/build/`、`linux/build/`、`windows/build/`（全新 checkout 中本就不存在）。判定是前缀匹配，
 段名巧合的路径仍照常判定。
 
-**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、2026-11 并入 `nsh-app/` 的整个 `rust-backend/` 前缀、NSH 迁移期的两个未跟踪旧探针
-（`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`）、旧 WebView 前端、平台工程、
+**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、已并入仓库根的 `nsh-app/` 前缀、2026-11 并入的整个 `rust-backend/` 前缀、整个 `spike/` 探针目录、旧 WebView 前端、平台工程、
 本地 git 元数据与历史归档，文档仍会作为历史记录引用它们；这些前缀下的路径不判存在性（列表见
 `deletedHistoryPrefixes`，前缀匹配）。**这只豁免已删除对象**：扫描范围不变，名字相近但并非该前缀的
-现存路径仍照常判定（判定是路径前缀，不是子串），检查没有被整体关闭。已提交的 P2 探针
-`spike/nsh-editor-md-probe/`（源码/截图）**不在豁免内**，指向它的引用照常校验。
+现存路径仍照常判定（判定是路径前缀，不是子串），检查没有被整体关闭。
 
 **本地日志**: `.log` 文件不判存在性——根 `.gitignore` 的 `*.log` 规则（`git ls-files '*.log'` 为空）
 保证 fresh checkout 里没有任何日志，文档引用它们只是「本机实测证据」。豁免只针对日志文件本身，

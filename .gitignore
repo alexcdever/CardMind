@@ -38,6 +38,12 @@ rust/target/
 
 rust/lcov.info
 
+# NSH app build artifacts（源码在仓库根后，构建产物与 node_modules 也在根）
+/target/
+/node_modules/
+/.nsh/
+/out/
+
 
 # Brainstorming visual companion files
 .superpowers/

@@ -1,13 +1,13 @@
 # CardMind
 
-面向多设备个人用户的笔记同步应用。NSH 前端（nsh-app，TSX）+ Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
+面向多设备个人用户的笔记同步应用。NSH 前端（TSX，app 源码直接在仓库根）+ Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|------|
 | 前端 | NSH 0.3.0 + TSX（原生 `Editor` 做 Markdown 源编辑，无 WebView/Tiptap） |
-| 核心逻辑 | Rust（`nsh-app-cardmind` crate，内核在 `nsh-app/src/kernel/`） |
+| 核心逻辑 | Rust（`nsh-app-cardmind` crate，内核在 `src/kernel/`） |
 | CRDT 存储 | Loro 1.13 |
 | 网络层 | iroh 1.0（直连模式，默认禁用 relay）+ mDNS |
 | 查询层 | SQLite（Rust 端 rusqlite） |
@@ -15,7 +15,7 @@
 ## 架构
 
 ```
-NSH (TSX UI, nsh-app) ←→ Rust (业务后端)
+NSH (TSX UI, 仓库根) ←→ Rust (业务后端)
                           ├─ LoroDoc (真实信源)
                           ├─ SQLite (读模型)
                           └─ iroh + mDNS (网络同步与设备发现)
@@ -27,7 +27,7 @@ NSH (TSX UI, nsh-app) ←→ Rust (业务后端)
 ## 项目结构
 
 ```
-nsh-app/          NSH 前端（TSX 页面 + 组件）
+仓库根          NSH 前端（TSX 页面 + 组件）
   App.tsx         应用入口
   editor_page.tsx / note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx
   components.tsx / navigation.tsx / theme.ts
@@ -52,15 +52,15 @@ tool/             工具脚本（门禁 `git_gate.mjs`、lint、发布脚本）
 ## 常用命令
 
 ```bash
-# nsh-app（在 nsh-app/ 下跑）
+# app（在仓库根跑）
 npx tsx --test "*_test.ts"              # TSX 全量测试（node --test）
-nsh check .                             # 0.3.0 类型检查 + app crate 构建
+nsh check .                             # 类型检查 + app crate 构建
 nsh test --filter editor                # 编辑器行为测试（headless，假 repository）
 npm run build                           # 打包 bundle（node build-nsh.mjs）
 
-# Rust
-cd nsh-app && cargo test                # 测试
-cd nsh-app && cargo build --release     # 发布构建
+# Rust（在仓库根跑）
+cargo test                              # 测试
+cargo build --release                   # 发布构建
 
 # 门禁（Node.js 工具链）
 node tool/git_gate.mjs plan --staged

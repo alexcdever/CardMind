@@ -1,17 +1,17 @@
 # Integration journeys
 
 > 迁移 4.6 起：`integration_test/`（Flutter 平台集成测试）与 tool/feature_test.dart
-> runner 已整删；前端为 NSH（`nsh-app`），真机/双实例验收改为按任务人工执行。
+> runner 已整删；前端为 NSH（app 源码在仓库根），真机/双实例验收改为按任务人工执行。
 > 本文保留作测试地图说明；自动化 E2E runner 属后续任务。
 
 ## 现状测试资产
 
-- **TSX 前端测试**：`nsh-app/*_test.ts` 与 `nsh-app/web/src/*_test.ts`，
+- **TSX 前端测试**：仓库根 `*_test.ts`，
   node --test 经 tsx 加载，门禁 `tsx:test` 全量跑：
-  `cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`。
-- **Rust 集成测试**：`nsh-app/tests/`，`cargo test --all-features --jobs 1`；
+  `npx tsx --test "*_test.ts"`。
+- **Rust 集成测试**：`tests/`，`cargo test --all-features --jobs 1`；
   pre-commit 门禁按 staged 文件映射到具体 target。
-- **数据共存探针**：`nsh-app/data_coexist_test.ts`（静态断言 + cargo 探针读夹具 db）。
+- **数据共存探针**：`data_coexist_test.ts`（静态断言 + cargo 探针读夹具 db）。
 
 ## 发布/验收（无自动化 runner）
 
