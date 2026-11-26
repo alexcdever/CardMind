@@ -232,7 +232,8 @@ editor.edit([{ range, text: `[[${row.id}|${row.title}]]` }]); // 一步撤销，
 
 ```powershell
 # 已装 nsh 0.3.0：C:\Users\alexc\scoop\apps\nsh\0.3.0\bin\nsh.exe（或 PATH 上的 nsh）
-cd nsh-app
+# 本节写于 2026-11-02。原文首行是 `cd nsh-app`；该层已于 2026-11-26 摊平到仓库根，
+# 现在直接在仓库根跑同样的命令。
 nsh check .        # TSX 类型 + Rust crate cargo check
 nsh build .        # bundle + QuickJS bytecode
 nsh test .         # headless 行为测试（*.test.tsx）
